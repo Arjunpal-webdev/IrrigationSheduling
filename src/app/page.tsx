@@ -2,9 +2,304 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+
+function ImageCarousel() {
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const { data: session, status } = useSession();
+
+    const slides = [
+        {
+            image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1600&h=500&fit=crop',
+            alt: 'Smart irrigation system'
+        },
+        {
+            image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=1600&h=500&fit=crop',
+            alt: 'Healthy crops growing'
+        },
+        {
+            image: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1600&h=500&fit=crop',
+            alt: 'Water sprinklers in field'
+        },
+        {
+            image: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=1600&h=500&fit=crop',
+            alt: 'Modern farming technology'
+        }
+    ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % slides.length);
+        }, 4000);
+        return () => clearInterval(interval);
+    }, [slides.length]);
+
+    const goToSlide = (index: number) => {
+        setCurrentSlide(index);
+    };
+
+    const prevSlide = () => {
+        setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    };
+
+    const nextSlide = () => {
+        setCurrentSlide((prev) => (prev + 1) % slides.length);
+    };
+
+    return (
+        <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '500px',
+            overflow: 'hidden',
+            borderRadius: '0 0 20px 20px'
+        }}>
+            {/* Images */}
+            {slides.map((slide, index) => (
+                <div
+                    key={index}
+                    style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: '100%',
+                        opacity: currentSlide === index ? 1 : 0,
+                        transition: 'opacity 1s ease-in-out',
+                        backgroundImage: `url(${slide.image})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                    }}
+                />
+            ))}
+
+            {/* Auth Buttons - Top Right */}
+            <div style={{
+                position: 'absolute',
+                top: '2rem',
+                right: '2rem',
+                display: 'flex',
+                gap: '1rem',
+                zIndex: 4
+            }}>
+                {status === 'loading' ? (
+                    <div style={{ color: 'white' }}>Loading...</div>
+                ) : session ? (
+                    <>
+                        <Link href="/dashboard" style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '12px',
+                            textDecoration: 'none',
+                            fontWeight: 600,
+                            border: '2px solid white',
+                            transition: 'all 0.3s ease',
+                            backdropFilter: 'blur(10px)'
+                        }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}>
+                            Dashboard
+                        </Link>
+                        <button onClick={() => signOut({ callbackUrl: '/' })} style={{
+                            backgroundColor: 'white',
+                            color: '#10B981',
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '12px',
+                            fontWeight: 600,
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
+                        }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                            Logout
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <Link href="/login" style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '12px',
+                            textDecoration: 'none',
+                            fontWeight: 600,
+                            border: '2px solid white',
+                            transition: 'all 0.3s ease',
+                            backdropFilter: 'blur(10px)'
+                        }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}>
+                            Login
+                        </Link>
+                        <Link href="/register" style={{
+                            backgroundColor: 'white',
+                            color: '#10B981',
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '12px',
+                            textDecoration: 'none',
+                            fontWeight: 600,
+                            transition: 'all 0.3s ease'
+                        }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                            Sign Up
+                        </Link>
+                    </>
+                )}
+            </div>
+
+            {/* Dark Overlay */}
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.6))',
+                zIndex: 1
+            }} />
+
+            {/* Content Overlay */}
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2,
+                textAlign: 'center',
+                padding: '2rem'
+            }}>
+                <h1 style={{
+                    color: 'white',
+                    fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                    fontWeight: 900,
+                    marginBottom: '1rem',
+                    textShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                    maxWidth: '900px'
+                }}>
+                    AI Powered Smart Irrigation for Modern Farming
+                </h1>
+                <p style={{
+                    color: 'rgba(255,255,255,0.95)',
+                    fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
+                    marginBottom: '2rem',
+                    textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                    maxWidth: '700px'
+                }}>
+                    Monitor soil, save water, increase yield.
+                </p>
+                <Link href="/dashboard" style={{
+                    backgroundColor: '#10B981',
+                    color: 'white',
+                    padding: '1rem 2.5rem',
+                    borderRadius: '12px',
+                    textDecoration: 'none',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)',
+                    transition: 'all 0.3s ease',
+                    display: 'inline-block'
+                }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#059669';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#10B981';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                    }}>
+                    Go to Dashboard →
+                </Link>
+            </div>
+
+            {/* Left Arrow */}
+            <button
+                onClick={prevSlide}
+                style={{
+                    position: 'absolute',
+                    left: '20px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 3,
+                    backgroundColor: 'rgba(255,255,255,0.3)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '50px',
+                    height: '50px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '1.5rem',
+                    color: 'white',
+                    backdropFilter: 'blur(5px)',
+                    transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.5)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}>
+                ‹
+            </button>
+
+            {/* Right Arrow */}
+            <button
+                onClick={nextSlide}
+                style={{
+                    position: 'absolute',
+                    right: '20px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 3,
+                    backgroundColor: 'rgba(255,255,255,0.3)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '50px',
+                    height: '50px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '1.5rem',
+                    color: 'white',
+                    backdropFilter: 'blur(5px)',
+                    transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.5)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}>
+                ›
+            </button>
+
+            {/* Indicator Dots */}
+            <div style={{
+                position: 'absolute',
+                bottom: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                gap: '10px',
+                zIndex: 3
+            }}>
+                {slides.map((_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => goToSlide(index)}
+                        style={{
+                            width: currentSlide === index ? '32px' : '12px',
+                            height: '12px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            backgroundColor: currentSlide === index ? 'white' : 'rgba(255,255,255,0.5)',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
+                        }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
 
 export default function HomePage() {
     const [isVisible, setIsVisible] = useState(false);
+    const { data: session, status } = useSession();
 
     useEffect(() => {
         setIsVisible(true);
@@ -12,113 +307,12 @@ export default function HomePage() {
 
     return (
         <div className="min-h-screen">
-            {/* Hero Section */}
-            <section style={{
-                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                minHeight: '90vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                overflow: 'hidden'
-            }}>
-                {/* Background Pattern */}
-                <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    opacity: 0.1,
-                    backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
-                    backgroundSize: '30px 30px'
-                }} />
-
-                <div className="container" style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '2rem' }}>
-                    {/* Farm Icon */}
-                    <div className="fade-in" style={{
-                        fontSize: '5rem',
-                        marginBottom: '1.5rem',
-                        animation: isVisible ? 'fadeIn 0.8s ease-out' : 'none'
-                    }}>
-                        🌾🚜💧
-                    </div>
-
-                    {/* Main Headline */}
-                    <h1 className="fade-in" style={{
-                        color: '#ffffff',
-                        fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-                        fontWeight: 900,
-                        marginBottom: '1rem',
-                        textShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
-                        animationDelay: '0.2s'
-                    }}>
-                        Smart Irrigation, Healthier Crops, More Yield
-                    </h1>
-
-                    {/* Subtext */}
-                    <p className="fade-in" style={{
-                        color: 'rgba(255, 255, 255, 0.9)',
-                        fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
-                        marginBottom: '2.5rem',
-                        maxWidth: '700px',
-                        margin: '0 auto 2.5rem',
-                        lineHeight: 1.6,
-                        textShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-                        animationDelay: '0.4s'
-                    }}>
-                        AI-powered monitoring for soil, water, and crop health. Save water, reduce costs, and increase your harvest.
-                    </p>
-
-                    {/* CTA Buttons */}
-                    <div className="fade-in" style={{
-                        display: 'flex',
-                        gap: '1rem',
-                        justifyContent: 'center',
-                        flexWrap: 'wrap',
-                        animationDelay: '0.6s'
-                    }}>
-                        <Link href="/dashboard" style={{
-                            backgroundColor: '#16a34a',
-                            color: '#ffffff',
-                            fontSize: '1.1rem',
-                            fontWeight: 600,
-                            padding: '1rem 2.5rem',
-                            borderRadius: 'var(--radius-lg)',
-                            textDecoration: 'none',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
-                            transition: 'all 0.3s ease'
-                        }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#15803d'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}>
-                            🎛️ Go to Dashboard
-                        </Link>
-
-                        <Link href="/calculator" style={{
-                            backgroundColor: '#ffffff',
-                            color: '#16a34a',
-                            fontSize: '1.1rem',
-                            fontWeight: 600,
-                            padding: '1rem 2.5rem',
-                            borderRadius: 'var(--radius-lg)',
-                            textDecoration: 'none',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            border: '2px solid #16a34a',
-                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1)',
-                            transition: 'all 0.3s ease'
-                        }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dcfce7'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}>
-                            💧 Check Water Need
-                        </Link>
-                    </div>
-                </div>
-            </section>
+            {/* Image Carousel */}
+            <ImageCarousel />
 
             {/* Live Farm Status Preview */}
-            <section style={{ padding: '4rem 0', backgroundColor: 'var(--color-background)' }}>
+            < section style={{ padding: '4rem 0', backgroundColor: 'var(--color-background)' }
+            }>
                 <div className="container">
                     <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
                         <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
@@ -165,10 +359,10 @@ export default function HomePage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* Benefits Section */}
-            <section style={{ padding: '4rem 0', background: 'var(--gradient-subtle)' }}>
+            < section style={{ padding: '4rem 0', background: 'var(--gradient-subtle)' }}>
                 <div className="container">
                     <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
                         <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
@@ -217,10 +411,10 @@ export default function HomePage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* How It Works */}
-            <section style={{ padding: '4rem 0', backgroundColor: 'var(--color-background)' }}>
+            < section style={{ padding: '4rem 0', backgroundColor: 'var(--color-background)' }}>
                 <div className="container">
                     <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
                         <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
@@ -291,10 +485,10 @@ export default function HomePage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* CTA Section */}
-            <section style={{
+            < section style={{
                 padding: '5rem 0',
                 background: 'var(--gradient-primary)',
                 textAlign: 'center'
@@ -322,10 +516,10 @@ export default function HomePage() {
                         Start Monitoring Now →
                     </Link>
                 </div>
-            </section>
+            </section >
 
             {/* Footer */}
-            <footer style={{
+            < footer style={{
                 padding: '3rem 0',
                 backgroundColor: 'var(--color-surface)',
                 borderTop: '1px solid var(--color-primary-light)'
@@ -393,7 +587,7 @@ export default function HomePage() {
                         </p>
                     </div>
                 </div>
-            </footer>
-        </div>
+            </footer >
+        </div >
     );
 }
