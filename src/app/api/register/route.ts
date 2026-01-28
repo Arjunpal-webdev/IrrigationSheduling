@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { registerUser } from '../auth/[...nextauth]/route';
+import { registerUser } from '@/lib/auth';
 
 export async function POST(request: Request) {
     try {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
             );
         }
 
-        registerUser(email, password, name);
+        await registerUser(email, password, name);
 
         return NextResponse.json(
             { message: 'User registered successfully' },
