@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { WaterBalanceCalculator } from '@/lib/cropwat/waterBalance';
 import { AnomalyDetector } from '@/lib/ai/anomalyDetection';
