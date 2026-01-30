@@ -15,8 +15,30 @@
 
 .contentArea {
     margin-top: 70px;
-    padding: 2rem;
+    padding: 1.5rem;
     flex: 1;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .contentArea {
+        padding: 2rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .contentArea {
+        padding: 2.5rem;
+    }
+}
+
+@media (min-width: 1280px) {
+    .contentArea {
+        padding: 3rem;
+    }
 }
 
 .pageHeader {

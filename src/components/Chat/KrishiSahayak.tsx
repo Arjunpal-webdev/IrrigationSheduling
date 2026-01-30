@@ -144,7 +144,18 @@ export default function KrishiSahayak() {
                 alignItems: 'center'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <span style={{ fontSize: '2rem' }}>🌾</span>
+                    <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.5rem'
+                    }}>
+                        👨‍🌾
+                    </div>
                     <div>
                         <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>
                             Krishi Sahayak

@@ -1,10 +1,15 @@
-import { getServerSession } from 'next-auth';
+'use client';
+
+import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
-import { authOptions } from '@/lib/auth';
 import DashboardClient from './DashboardClient';
 
-export default async function DashboardPage() {
-    const session = await getServerSession(authOptions);
+export default function DashboardPage() {
+    const { data: session, status } = useSession();
+
+    if (status === 'loading') {
+        return null; // loading.tsx will show
+    }
 
     if (!session) {
         redirect('/login');

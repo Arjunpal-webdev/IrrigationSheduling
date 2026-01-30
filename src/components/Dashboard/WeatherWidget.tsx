@@ -7,25 +7,33 @@ interface WeatherWidgetProps {
     currentTemp?: number;
     description?: string;
     humidity?: number;
+    lat?: number;
+    lon?: number;
 }
 
 export default function WeatherWidget({
     currentTemp = 28,
     description = 'Clear sky',
-    humidity = 60
+    humidity = 60,
+    lat,
+    lon
 }: WeatherWidgetProps) {
     const [forecast, setForecast] = useState<WeatherForecast[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchWeather();
-    }, []);
+    }, [lat, lon]);
 
     const fetchWeather = async () => {
         try {
-            const response = await fetch('/api/weather');
+            const params = new URLSearchParams();
+            if (lat) params.append('lat', lat.toString());
+            if (lon) params.append('lon', lon.toString());
+
+            const response = await fetch(`/api/weather?${params.toString()}`);
             const data = await response.json();
-            setForecast(data.forecast.slice(0, 5));
+            setForecast(data.forecast.slice(0, 7));
         } catch (error) {
             console.error('Weather fetch error:', error);
         } finally {
@@ -57,7 +65,7 @@ export default function WeatherWidget({
                 padding: '1.5rem',
                 background: 'var(--gradient-subtle)',
                 borderRadius: '12px',
-                marginBottom: '1.5rem'
+                marginBottom: '1rem'
             }}>
                 <div>
                     <div style={{
@@ -83,18 +91,32 @@ export default function WeatherWidget({
                 </div>
             </div>
 
-            {/* 5-Day Forecast */}
+            {/* AI Weather Insights - Moved to Top */}
+            <div style={{
+                marginBottom: '1.5rem',
+                padding: '0.75rem',
+                background: 'rgba(251, 191, 36, 0.1)',
+                borderLeft: '4px solid #FBBF24',
+                borderRadius: '4px',
+                fontSize: '0.85rem'
+            }}>
+                <strong>💡 Insight:</strong> {forecast.length > 0 && forecast.some(d => d.precipitation > 5)
+                    ? 'Rain expected this week. Adjust irrigation schedule accordingly.'
+                    : 'No significant rainfall forecasted. Maintain regular irrigation.'}
+            </div>
+
+            {/* 7-Day Forecast */}
             <div>
                 <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', opacity: 0.8 }}>
-                    5-Day Forecast
+                    7-Day Forecast
                 </h4>
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(5, 1fr)',
+                    gridTemplateColumns: 'repeat(7, 1fr)',
                     gap: '0.5rem'
                 }}>
                     {loading ? (
-                        Array(5).fill(0).map((_, i) => (
+                        Array(7).fill(0).map((_, i) => (
                             <div key={i} className="skeleton" style={{ height: '100px' }} />
                         ))
                     ) : (
@@ -134,20 +156,6 @@ export default function WeatherWidget({
                         ))
                     )}
                 </div>
-            </div>
-
-            {/* Weather Insights */}
-            <div style={{
-                marginTop: '1rem',
-                padding: '0.75rem',
-                background: 'rgba(251, 191, 36, 0.1)',
-                borderLeft: '4px solid #FBBF24',
-                borderRadius: '4px',
-                fontSize: '0.85rem'
-            }}>
-                <strong>💡 Insight:</strong> {forecast.length > 0 && forecast.some(d => d.precipitation > 5)
-                    ? 'Rain expected this week. Adjust irrigation schedule accordingly.'
-                    : 'No significant rainfall forecasted. Maintain regular irrigation.'}
             </div>
         </div>
     );

@@ -1,45 +1,115 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Dashboard/Sidebar';
 import DashboardHeader from '@/components/Dashboard/DashboardHeader';
-import styles from '../dashboard/dashboard.module.css';
+import CropSelector from '@/components/Crops/CropSelector';
+import CropDetailsPanel from '@/components/Crops/CropDetailsPanel';
+import { mockCrops, Crop } from '@/components/Crops/mockCropData';
+import dashboardStyles from '../dashboard/dashboard.module.css';
+import styles from './crops.module.css';
 
 export default function CropsPage() {
+    const [selectedCrop, setSelectedCrop] = useState<Crop | null>(mockCrops[0]);
+    const [crops, setCrops] = useState<Crop[]>(mockCrops);
+    const [loading, setLoading] = useState(false);
+
+    // Fetch crop data when selectedCrop changes
+    useEffect(() => {
+        if (selectedCrop) {
+            fetchCropData(selectedCrop.id);
+        }
+    }, [selectedCrop]);
+
+    const fetchCropData = async (cropId: string) => {
+        setLoading(true);
+        try {
+            // In a real application, this would fetch crop-specific data from API
+            // For now, we're using mock data which is already loaded
+            console.log('Fetching data for crop:', cropId);
+        } catch (error) {
+            console.error('Error fetching crop data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddCrop = async () => {
+        const newCropData = {
+            name: prompt('Enter crop name:'),
+            type: prompt('Enter crop type:'),
+            plantingDate: new Date().toISOString(),
+            area: parseFloat(prompt('Enter area in hectares:') || '0')
+        };
+
+        if (!newCropData.name || !newCropData.type) {
+            alert('Please provide valid crop details');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/crops', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCropData)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                alert('Crop added successfully!');
+                // Refresh crop list
+                refreshCropList();
+            } else {
+                alert('Failed to add crop');
+            }
+        } catch (error) {
+            console.error('Error adding crop:', error);
+            alert('Error adding crop');
+        }
+    };
+
+    const refreshCropList = async () => {
+        try {
+            const response = await fetch('/api/crops');
+            if (response.ok) {
+                const data = await response.json();
+                setCrops(data.crops || mockCrops);
+            }
+        } catch (error) {
+            console.error('Error refreshing crops:', error);
+        }
+    };
+
     return (
-        <div className={styles.dashboardLayout}>
+        <div className={dashboardStyles.dashboardLayout}>
             <Sidebar />
-            <div className={styles.mainContent}>
+            <div className={dashboardStyles.mainContent}>
                 <DashboardHeader userName="Farmer" />
-                <main className={styles.contentArea}>
-                    <div className={styles.pageHeader}>
+                <main className={dashboardStyles.contentArea}>
+                    <div className={dashboardStyles.pageHeader}>
                         <div>
-                            <h2 className={styles.pageTitle}>🌾 Crop Management</h2>
-                            <p className={styles.pageSubtitle}>
-                                Manage your crops with AI-optimized parameters
+                            <h2 className={dashboardStyles.pageTitle}>🌾 Crop Management</h2>
+                            <p className={dashboardStyles.pageSubtitle}>
+                                AI-powered crop monitoring with growth stage insights
                             </p>
                         </div>
-                        <button className="btn-primary">+ Add New Crop</button>
+                        <button className="btn-primary" onClick={handleAddCrop}>+ Add New Crop</button>
                     </div>
 
-                    <div className="card">
-                        <h3 style={{ marginBottom: '1rem' }}>Current Crop Information</h3>
-
-                        <div className={styles.cropGrid}>
-                            {[
-                                { label: 'Crop Type', value: '🌾 Wheat', color: '#10B981' },
-                                { label: 'Growth Stage', value: 'Development (45 days)', color: '#FBBF24' },
-                                { label: 'Field Area', value: '2.5 hectares', color: '#3B82F6' },
-                                { label: 'Planting Date', value: 'Dec 12, 2025', color: '#8B5CF6' },
-                                { label: 'Expected Harvest', value: 'Apr 15, 2026', color: '#EC4899' },
-                                { label: 'Crop Coefficient (Kc)', value: '0.85 (AI)', color: '#10B981' }
-                            ].map((info, i) => (
-                                <div key={i} className={styles.cropItem} style={{ '--border-color': info.color } as any}>
-                                    <div className={styles.cropLabel}>{info.label}</div>
-                                    <div className={styles.cropValue} style={{ color: info.color }}>
-                                        {info.value}
-                                    </div>
-                                </div>
-                            ))}
+                    <div className={styles.cropManagementLayout}>
+                        <div className={styles.cropSelectorPanel}>
+                            <CropSelector
+                                crops={crops}
+                                selectedCrop={selectedCrop}
+                                onSelectCrop={setSelectedCrop}
+                            />
+                        </div>
+                        <div className={styles.cropDetailsPanel}>
+                            {loading ? (
+                                <div>Loading crop data...</div>
+                            ) : (
+                                <CropDetailsPanel crop={selectedCrop} />
+                            )}
                         </div>
                     </div>
                 </main>

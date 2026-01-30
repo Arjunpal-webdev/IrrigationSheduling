@@ -1,8 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import NavigationOverlay from '@/components/NavigationOverlay';
+import { showNavOverlay } from '@/lib/navigationOverlay';
 
 function ImageCarousel() {
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -299,11 +302,24 @@ function ImageCarousel() {
 
 export default function HomePage() {
     const [isVisible, setIsVisible] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
     const { data: session, status } = useSession();
+    const router = useRouter();
 
     useEffect(() => {
         setIsVisible(true);
     }, []);
+
+    const handleDashboardClick = () => {
+        console.log('Dashboard button clicked!');
+        showNavOverlay(); // Show overlay instantly via DOM
+        console.log('After showNavOverlay()');
+        setIsNavigating(true);
+        startTransition(() => {
+            console.log('Navigating to dashboard...');
+            router.push('/dashboard');
+        });
+    };
 
     return (
         <div className="min-h-screen">
@@ -490,15 +506,15 @@ export default function HomePage() {
             {/* CTA Section */}
             < section style={{
                 padding: '5rem 0',
-                background: 'var(--gradient-primary)',
+                background: 'linear-gradient(135deg, #e8fff3, #d2f5e4)',
                 textAlign: 'center'
             }}>
                 <div className="container">
-                    <h2 style={{ color: 'white', fontSize: '2.5rem', marginBottom: '1rem', fontWeight: 700 }}>
+                    <h2 style={{ color: '#047857', fontSize: '2.5rem', marginBottom: '1rem', fontWeight: 700 }}>
                         Ready to Improve Your Farm Efficiency?
                     </h2>
                     <p style={{
-                        color: '#D1FAE5',
+                        color: '#065F46',
                         fontSize: '1.2rem',
                         marginBottom: '2rem',
                         maxWidth: '600px',
@@ -506,15 +522,43 @@ export default function HomePage() {
                     }}>
                         Join thousands of farmers using AI to save water and increase yields
                     </p>
-                    <Link href="/dashboard" className="btn-primary" style={{
-                        backgroundColor: 'white',
-                        color: 'var(--color-primary)',
-                        fontSize: '1.2rem',
-                        padding: '1.25rem 3rem',
-                        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2)'
-                    }}>
-                        Start Monitoring Now →
-                    </Link>
+                    <button
+                        onClick={handleDashboardClick}
+                        disabled={isNavigating}
+                        style={{
+                            backgroundColor: isNavigating ? '#059669' : '#16a34a',
+                            color: 'white',
+                            fontSize: '1.2rem',
+                            padding: '1.25rem 3rem',
+                            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2)',
+                            fontWeight: 600,
+                            opacity: isNavigating ? 0.8 : 1,
+                            cursor: isNavigating ? 'wait' : 'pointer',
+                            border: 'none',
+                            borderRadius: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            transition: 'all 0.3s ease'
+                        }}
+                    >
+                        {isNavigating ? (
+                            <>
+                                <span style={{
+                                    display: 'inline-block',
+                                    width: '16px',
+                                    height: '16px',
+                                    border: '2px solid white',
+                                    borderTop: '2px solid transparent',
+                                    borderRadius: '50%',
+                                    animation: 'spin 0.8s linear infinite'
+                                }} />
+                                Opening Dashboard...
+                            </>
+                        ) : (
+                            'Start Monitoring Now →'
+                        )}
+                    </button>
                 </div>
             </section >
 
@@ -568,9 +612,9 @@ export default function HomePage() {
                         <div>
                             <h4 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Contact</h4>
                             <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                                📍 Maharashtra, India<br />
-                                📧 support@greenguard.ai<br />
-                                📱 +91 XXXX-XXXXXX
+                                📍 Uttar Pradesh, India<br />
+                                📧 info@protominds.com<br />
+                                📱 +91 9760-434089
                             </p>
                         </div>
                     </div>

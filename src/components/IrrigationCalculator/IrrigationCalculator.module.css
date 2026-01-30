@@ -119,6 +119,28 @@
     gap: 0.5rem;
 }
 
+.formRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.sectionHeader {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid rgba(16, 185, 129, 0.2);
+}
+
+.sectionHeader h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+
 .formLabel {
     font-weight: 600;
     font-size: 0.95rem;
