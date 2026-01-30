@@ -6,8 +6,10 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import NavigationOverlay from '@/components/NavigationOverlay';
 import { showNavOverlay } from '@/lib/navigationOverlay';
+import useNavigationOverlay from '@/lib/useNavigationOverlay';
+import { goToDashboard } from '@/lib/goToDashboard';
 
-function ImageCarousel() {
+function ImageCarousel({ router, setShowOverlay }: { router: any; setShowOverlay: (v: boolean) => void }) {
     const [currentSlide, setCurrentSlide] = useState(0);
     const { data: session, status } = useSession();
 
@@ -87,21 +89,24 @@ function ImageCarousel() {
                     <div style={{ color: 'white' }}>Loading...</div>
                 ) : session ? (
                     <>
-                        <Link href="/dashboard" style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                            color: 'white',
-                            padding: '0.75rem 1.5rem',
-                            borderRadius: '12px',
-                            textDecoration: 'none',
-                            fontWeight: 600,
-                            border: '2px solid white',
-                            transition: 'all 0.3s ease',
-                            backdropFilter: 'blur(10px)'
-                        }}
+                        <button
+                            onClick={() => goToDashboard(router, setShowOverlay)}
+                            style={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                color: 'white',
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: '12px',
+                                fontWeight: 600,
+                                border: '2px solid white',
+                                transition: 'all 0.3s ease',
+                                backdropFilter: 'blur(10px)',
+                                cursor: 'pointer'
+                            }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}>
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+                        >
                             Dashboard
-                        </Link>
+                        </button>
                         <button onClick={() => signOut({ callbackUrl: '/' })} style={{
                             backgroundColor: 'white',
                             color: '#10B981',
@@ -190,18 +195,20 @@ function ImageCarousel() {
                 }}>
                     Monitor soil, save water, increase yield.
                 </p>
-                <Link href="/dashboard" style={{
-                    backgroundColor: '#10B981',
-                    color: 'white',
-                    padding: '1rem 2.5rem',
-                    borderRadius: '12px',
-                    textDecoration: 'none',
-                    fontSize: '1.1rem',
-                    fontWeight: 600,
-                    boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)',
-                    transition: 'all 0.3s ease',
-                    display: 'inline-block'
-                }}
+                <button
+                    onClick={() => goToDashboard(router, setShowOverlay)}
+                    style={{
+                        backgroundColor: '#10B981',
+                        color: 'white',
+                        padding: '1rem 2.5rem',
+                        borderRadius: '12px',
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                        boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)',
+                        transition: 'all 0.3s ease',
+                        border: 'none',
+                        cursor: 'pointer'
+                    }}
                     onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = '#059669';
                         e.currentTarget.style.transform = 'translateY(-2px)';
@@ -209,9 +216,10 @@ function ImageCarousel() {
                     onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = '#10B981';
                         e.currentTarget.style.transform = 'translateY(0)';
-                    }}>
+                    }}
+                >
                     Go to Dashboard →
-                </Link>
+                </button>
             </div>
 
             {/* Left Arrow */}
@@ -302,29 +310,28 @@ function ImageCarousel() {
 
 export default function HomePage() {
     const [isVisible, setIsVisible] = useState(false);
-    const [isNavigating, setIsNavigating] = useState(false);
+    const [showOverlay, setShowOverlay] = useState(false);
     const { data: session, status } = useSession();
     const router = useRouter();
+
+    // Auto-hide overlay when route changes
+    useNavigationOverlay(setShowOverlay);
 
     useEffect(() => {
         setIsVisible(true);
     }, []);
 
     const handleDashboardClick = () => {
-        console.log('Dashboard button clicked!');
-        showNavOverlay(); // Show overlay instantly via DOM
-        console.log('After showNavOverlay()');
-        setIsNavigating(true);
-        startTransition(() => {
-            console.log('Navigating to dashboard...');
-            router.push('/dashboard');
-        });
+        goToDashboard(router, setShowOverlay);
     };
 
     return (
         <div className="min-h-screen">
+            {/* Navigation Overlay */}
+            <NavigationOverlay show={showOverlay} />
+
             {/* Image Carousel */}
-            <ImageCarousel />
+            <ImageCarousel router={router} setShowOverlay={setShowOverlay} />
 
             {/* Live Farm Status Preview */}
             < section style={{ padding: '4rem 0', backgroundColor: 'var(--color-background)' }
@@ -524,16 +531,16 @@ export default function HomePage() {
                     </p>
                     <button
                         onClick={handleDashboardClick}
-                        disabled={isNavigating}
+                        disabled={showOverlay}
                         style={{
-                            backgroundColor: isNavigating ? '#059669' : '#16a34a',
+                            backgroundColor: showOverlay ? '#059669' : '#16a34a',
                             color: 'white',
                             fontSize: '1.2rem',
                             padding: '1.25rem 3rem',
                             boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2)',
                             fontWeight: 600,
-                            opacity: isNavigating ? 0.8 : 1,
-                            cursor: isNavigating ? 'wait' : 'pointer',
+                            opacity: showOverlay ? 0.8 : 1,
+                            cursor: showOverlay ? 'wait' : 'pointer',
                             border: 'none',
                             borderRadius: '12px',
                             display: 'inline-flex',
@@ -542,7 +549,7 @@ export default function HomePage() {
                             transition: 'all 0.3s ease'
                         }}
                     >
-                        {isNavigating ? (
+                        {showOverlay ? (
                             <>
                                 <span style={{
                                     display: 'inline-block',
