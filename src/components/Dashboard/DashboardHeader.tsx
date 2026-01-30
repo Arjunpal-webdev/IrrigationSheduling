@@ -2,6 +2,7 @@
 
 import styles from './DashboardHeader.module.css';
 import { useState, useRef, useEffect } from 'react';
+import { signOut } from 'next-auth/react';
 
 interface DashboardHeaderProps {
     userName?: string;
@@ -23,7 +24,11 @@ const CITIES = [
 export default function DashboardHeader({ userName = 'Farmer', onLocationChange, notifications = [] }: DashboardHeaderProps) {
     const [selectedCity, setSelectedCity] = useState('Pune');
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const [userData, setUserData] = useState<{ name: string; email: string } | null>(null);
+    const [loading, setLoading] = useState(true);
     const notificationRef = useRef<HTMLDivElement>(null);
+    const profileRef = useRef<HTMLDivElement>(null);
 
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const cityName = e.target.value;
@@ -38,22 +43,80 @@ export default function DashboardHeader({ userName = 'Farmer', onLocationChange,
         setShowNotifications(prev => !prev);
     };
 
-    // Click outside handler to close dropdown
+    const toggleProfileDropdown = () => {
+        setShowProfileDropdown(prev => !prev);
+    };
+
+    // Fetch user data
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch('/api/user/me');
+                if (response.ok) {
+                    const data = await response.json();
+                    setUserData(data);
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchUserData();
+    }, []);
+
+    const handleLogout = async () => {
+        await signOut({ callbackUrl: '/login' });
+    };
+
+    const handleLoginWithAnother = async () => {
+        await signOut({ callbackUrl: '/login' });
+    };
+
+    const handleDeleteAccount = async () => {
+        const confirmed = window.confirm(
+            'Are you sure you want to delete your account? This action cannot be undone.'
+        );
+
+        if (confirmed) {
+            try {
+                const response = await fetch('/api/user/delete', {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert('Account deleted successfully');
+                    await signOut({ callbackUrl: '/' });
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Failed to delete account');
+                }
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                alert('An error occurred while deleting your account');
+            }
+        }
+    };
+
+    // Click outside handler to close dropdowns
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
                 setShowNotifications(false);
             }
+            if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+                setShowProfileDropdown(false);
+            }
         };
 
-        if (showNotifications) {
+        if (showNotifications || showProfileDropdown) {
             document.addEventListener('mousedown', handleClickOutside);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [showNotifications]);
+    }, [showNotifications, showProfileDropdown]);
 
     const getNotificationColor = (type: string) => {
         switch (type) {
@@ -170,11 +233,137 @@ export default function DashboardHeader({ userName = 'Farmer', onLocationChange,
                         )}
                     </div>
 
-                    <div className={styles.userProfile}>
-                        <div className={styles.avatar}>
-                            {userName.charAt(0).toUpperCase()}
+                    <div style={{ position: 'relative' }} ref={profileRef}>
+                        <div className={styles.userProfile} onClick={toggleProfileDropdown} style={{ cursor: 'pointer' }}>
+                            <div className={styles.avatar}>
+                                {(userData?.name || userName).charAt(0).toUpperCase()}
+                            </div>
+                            <span className={styles.userName}>{userData?.name || userName}</span>
                         </div>
-                        <span className={styles.userName}>{userName}</span>
+
+                        {/* Profile Dropdown */}
+                        {showProfileDropdown && (
+                            <div style={{
+                                position: 'absolute',
+                                right: 0,
+                                top: 'calc(100% + 0.5rem)',
+                                width: '280px',
+                                background: 'white',
+                                borderRadius: '12px',
+                                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+                                padding: '0',
+                                zIndex: 1000,
+                                overflow: 'hidden'
+                            }}>
+                                {/* User Info */}
+                                <div style={{
+                                    padding: '1.25rem',
+                                    borderBottom: '1px solid #E5E7EB',
+                                    background: 'var(--gradient-subtle)'
+                                }}>
+                                    {loading ? (
+                                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+                                            Loading...
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div style={{
+                                                fontWeight: 600,
+                                                fontSize: '1rem',
+                                                color: 'var(--color-text-primary)',
+                                                marginBottom: '0.25rem'
+                                            }}>
+                                                {userData?.name || userName}
+                                            </div>
+                                            <div style={{
+                                                fontSize: '0.875rem',
+                                                color: 'var(--color-text-muted)'
+                                            }}>
+                                                {userData?.email || 'No email'}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Menu Items */}
+                                <div style={{ padding: '0.5rem 0' }}>
+                                    <button
+                                        onClick={handleLogout}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.875rem 1.25rem',
+                                            border: 'none',
+                                            background: 'none',
+                                            textAlign: 'left',
+                                            fontSize: '0.95rem',
+                                            color: 'var(--color-text-primary)',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.75rem',
+                                            transition: 'background 0.2s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#F9FAFB'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                    >
+                                        <span>🚪</span>
+                                        <span>Logout</span>
+                                    </button>
+
+                                    <button
+                                        onClick={handleLoginWithAnother}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.875rem 1.25rem',
+                                            border: 'none',
+                                            background: 'none',
+                                            textAlign: 'left',
+                                            fontSize: '0.95rem',
+                                            color: 'var(--color-text-primary)',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.75rem',
+                                            transition: 'background 0.2s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#F9FAFB'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                    >
+                                        <span>🔄</span>
+                                        <span>Login with Another Account</span>
+                                    </button>
+
+                                    <div style={{
+                                        height: '1px',
+                                        background: '#E5E7EB',
+                                        margin: '0.5rem 0'
+                                    }} />
+
+                                    <button
+                                        onClick={handleDeleteAccount}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.875rem 1.25rem',
+                                            border: 'none',
+                                            background: 'none',
+                                            textAlign: 'left',
+                                            fontSize: '0.95rem',
+                                            color: '#DC2626',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.75rem',
+                                            transition: 'background 0.2s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#FEE2E2'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                    >
+                                        <span>🗑️</span>
+                                        <span>Delete Account</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

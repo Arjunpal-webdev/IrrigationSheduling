@@ -92,3 +92,16 @@ export async function registerUser(email: string, password: string, name: string
     console.log('User added to array. Total users:', users.length);
 }
 
+// Export function to delete user
+export function deleteUser(email: string): boolean {
+    console.log('Deleting user:', email);
+    const index = users.findIndex((u) => u.email === email);
+    if (index !== -1) {
+        users.splice(index, 1);
+        console.log('User deleted. Total users:', users.length);
+        return true;
+    }
+    console.log('User not found for deletion');
+    return false;
+}
+

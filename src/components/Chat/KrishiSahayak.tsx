@@ -8,13 +8,14 @@ export default function KrishiSahayak() {
         {
             id: '1',
             role: 'assistant',
-            content: '🙏 Namaste! I am Krishi Sahayak, your AI farming assistant. How can I help you today with your crops?',
+            content: '🙏 Namaste! I am Krishi Sahayak (कृषि सहायक), your AI farming assistant. How can I help you today with your crops?',
             timestamp: new Date()
         }
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -44,18 +45,32 @@ export default function KrishiSahayak() {
         setInput('');
         setLoading(true);
 
+        console.log('💬 [Frontend] Sending message to chatbot:');
+        console.log('   Message:', input);
+        console.log('   SessionId:', sessionId);
+        console.log('   Context:', farmContext);
+
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: input,
-                    context: farmContext
+                    context: farmContext,
+                    sessionId // Include sessionId for conversation memory
                 })
             });
 
+            console.log('📥 [Frontend] Response received:', response.status);
             const data = await response.json();
+            console.log('📦 [Frontend] Response data:', data);
 
+            if (!response.ok) {
+                console.error('❌ [Frontend] API error:', data);
+                throw new Error(data.error || 'Failed to send message');
+            }
+
+            console.log('✅ [Frontend] Bot response:', data.response?.substring(0, 100));
             const assistantMessage: ChatMessage = {
                 id: String(Date.now() + 1),
                 role: 'assistant',
@@ -65,16 +80,43 @@ export default function KrishiSahayak() {
 
             setMessages(prev => [...prev, assistantMessage]);
         } catch (error) {
-            console.error('Chat error:', error);
+            console.error('❌ [Frontend] Chat error:', error);
+            if (error instanceof Error) {
+                console.error('   Error message:', error.message);
+            }
             const errorMessage: ChatMessage = {
                 id: String(Date.now() + 1),
                 role: 'assistant',
-                content: 'Sorry, I encountered an error. Please try again.',
+                content: 'Krishi Sevak is currently unavailable. Please try again.',
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleNewChat = async () => {
+        try {
+            // Reset conversation on backend
+            await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId,
+                    reset: true
+                })
+            });
+
+            // Clear local messages
+            setMessages([{
+                id: '1',
+                role: 'assistant',
+                content: '🙏 Namaste! I am Krishi Sahayak (कृषि सहायक), your AI farming assistant. How can I help you today with your crops?',
+                timestamp: new Date()
+            }]);
+        } catch (error) {
+            console.error('Error resetting chat:', error);
         }
     };
 
@@ -165,24 +207,48 @@ export default function KrishiSahayak() {
                         </p>
                     </div>
                 </div>
-                <button
-                    onClick={() => setIsOpen(false)}
-                    style={{
-                        background: 'rgba(255, 255, 255, 0.2)',
-                        border: 'none',
-                        color: 'white',
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        cursor: 'pointer',
-                        fontSize: '1.2rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}
-                >
-                    ×
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                        onClick={handleNewChat}
+                        title="Start new conversation"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.2)',
+                            border: 'none',
+                            color: 'white',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            cursor: 'pointer',
+                            fontSize: '1.1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+                    >
+                        🔄
+                    </button>
+                    <button
+                        onClick={() => setIsOpen(false)}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.2)',
+                            border: 'none',
+                            color: 'white',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            cursor: 'pointer',
+                            fontSize: '1.2rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        ×
+                    </button>
+                </div>
             </div>
 
             {/* Messages */}

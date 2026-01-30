@@ -5,14 +5,21 @@ import Sidebar from '@/components/Dashboard/Sidebar';
 import DashboardHeader from '@/components/Dashboard/DashboardHeader';
 import CropSelector from '@/components/Crops/CropSelector';
 import CropDetailsPanel from '@/components/Crops/CropDetailsPanel';
-import { mockCrops, Crop } from '@/components/Crops/mockCropData';
+import AddCropModal from '@/components/Crops/AddCropModal';
+import { Crop } from '@/components/Crops/mockCropData';
 import dashboardStyles from '../dashboard/dashboard.module.css';
 import styles from './crops.module.css';
 
 export default function CropsPage() {
-    const [selectedCrop, setSelectedCrop] = useState<Crop | null>(mockCrops[0]);
-    const [crops, setCrops] = useState<Crop[]>(mockCrops);
+    const [selectedCrop, setSelectedCrop] = useState<Crop | null>(null);
+    const [crops, setCrops] = useState<Crop[]>([]);
     const [loading, setLoading] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+
+    // Fetch crops from API on mount
+    useEffect(() => {
+        fetchAllCrops();
+    }, []);
 
     // Fetch crop data when selectedCrop changes
     useEffect(() => {
@@ -34,50 +41,29 @@ export default function CropsPage() {
         }
     };
 
-    const handleAddCrop = async () => {
-        const newCropData = {
-            name: prompt('Enter crop name:'),
-            type: prompt('Enter crop type:'),
-            plantingDate: new Date().toISOString(),
-            area: parseFloat(prompt('Enter area in hectares:') || '0')
-        };
-
-        if (!newCropData.name || !newCropData.type) {
-            alert('Please provide valid crop details');
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/crops', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newCropData)
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                alert('Crop added successfully!');
-                // Refresh crop list
-                refreshCropList();
-            } else {
-                alert('Failed to add crop');
-            }
-        } catch (error) {
-            console.error('Error adding crop:', error);
-            alert('Error adding crop');
-        }
-    };
-
-    const refreshCropList = async () => {
+    const fetchAllCrops = async () => {
         try {
             const response = await fetch('/api/crops');
             if (response.ok) {
                 const data = await response.json();
-                setCrops(data.crops || mockCrops);
+                setCrops(data.crops || []);
+                // Set first crop as selected if none selected
+                if (!selectedCrop && data.crops.length > 0) {
+                    setSelectedCrop(data.crops[0]);
+                }
             }
         } catch (error) {
-            console.error('Error refreshing crops:', error);
+            console.error('Error fetching crops:', error);
         }
+    };
+
+    const handleAddCropClick = () => {
+        setShowAddModal(true);
+    };
+
+    const handleModalSuccess = () => {
+        // Refresh crop list after successful add
+        fetchAllCrops();
     };
 
     return (
@@ -93,7 +79,7 @@ export default function CropsPage() {
                                 AI-powered crop monitoring with growth stage insights
                             </p>
                         </div>
-                        <button className="btn-primary" onClick={handleAddCrop}>+ Add New Crop</button>
+                        <button className="btn-primary" onClick={handleAddCropClick}>+ Add New Crop</button>
                     </div>
 
                     <div className={styles.cropManagementLayout}>
@@ -113,6 +99,13 @@ export default function CropsPage() {
                         </div>
                     </div>
                 </main>
+
+                {/* Add Crop Modal */}
+                <AddCropModal
+                    isOpen={showAddModal}
+                    onClose={() => setShowAddModal(false)}
+                    onSuccess={handleModalSuccess}
+                />
             </div>
         </div>
     );

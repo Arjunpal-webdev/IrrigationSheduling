@@ -1,25 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { mockCrops, Crop } from '@/components/Crops/mockCropData';
 
-// Mock database for demonstration
-let cropsDatabase: any[] = [];
+// In-memory storage for user-added crops
+let userCrops: Crop[] = [];
+let cropIdCounter = 1000;
 
 export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        // Combine mock crops with user-added crops
+        const allCrops = [...mockCrops, ...userCrops];
 
-        if (!session) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        // Return crops for the user
         return NextResponse.json({
-            crops: cropsDatabase,
-            count: cropsDatabase.length
+            success: true,
+            crops: allCrops,
+            count: allCrops.length
         });
     } catch (error) {
         console.error('Crops GET error:', error);
@@ -32,44 +26,51 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
-
-        if (!session) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
         const data = await request.json();
 
         // Validate required fields
-        if (!data.name || !data.type) {
+        if (!data.name) {
             return NextResponse.json(
-                { error: 'Name and type are required' },
+                { error: 'Crop name is required' },
                 { status: 400 }
             );
         }
 
-        // Create new crop entry
-        const newCrop = {
-            id: `crop_${Date.now()}`,
+        // Generate unique ID
+        cropIdCounter++;
+        const newCropId = `user-crop-${cropIdCounter}`;
+
+        // Calculate expected harvest date (planting date + growth duration)
+        const planting = new Date(data.plantingDate || new Date());
+        const harvestDate = new Date(planting);
+        const growthDays = parseInt(data.growthDuration) || 120;
+        harvestDate.setDate(harvestDate.getDate() + growthDays);
+
+        // Calculate days since planting
+        const today = new Date();
+        const daysSincePlanting = Math.floor((today.getTime() - planting.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Create new crop object matching Crop interface
+        const newCrop: Crop = {
+            id: newCropId,
             name: data.name,
-            type: data.type,
-            plantingDate: data.plantingDate || new Date().toISOString(),
-            area: data.area || 0,
-            healthScore: 85,
-            growthStage: 'Initial',
-            userId: session.user?.email,
-            createdAt: new Date().toISOString()
+            fieldId: `F-${cropIdCounter}`,
+            area: parseFloat(data.area) || 1.0,
+            health: 100, // New crops start at 100% health
+            currentStage: 'Germination',
+            daysSincePlanting: Math.max(0, daysSincePlanting),
+            plantingDate: planting.toISOString().split('T')[0],
+            expectedHarvest: harvestDate.toISOString().split('T')[0],
+            kc: 0.5 // Default crop coefficient
         };
 
-        // Save to database (in a real app, this would be MongoDB/PostgreSQL)
-        cropsDatabase.push(newCrop);
+        // Add to user crops array
+        userCrops.push(newCrop);
 
         return NextResponse.json({
             success: true,
-            crop: newCrop
+            crop: newCrop,
+            message: 'Crop added successfully'
         }, { status: 201 });
     } catch (error) {
         console.error('Crops POST error:', error);

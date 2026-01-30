@@ -1,48 +1,151 @@
 /**
- * Krishi Sahayak - AI Chatbot using Google Gemini
+ * Krishi Sahayak - AI Chatbot using Google Gemini REST API
  * Context-aware agricultural assistant
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { ChatMessage, FarmContext } from '@/types';
+import { FarmContext } from '@/types';
+
+// Gemini-specific message format
+export interface GeminiMessage {
+    role: 'user' | 'model';
+    parts: string;
+}
 
 export class KrishiSahayakChatbot {
-    private genAI: GoogleGenerativeAI | null = null;
-    private model: any = null;
+    private apiKey: string | undefined;
 
     constructor() {
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (apiKey) {
-            this.genAI = new GoogleGenerativeAI(apiKey);
-            this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+        this.apiKey = process.env.GEMINI_API_KEY;
+        console.log('🔑 [Chatbot] Initializing with API key:', this.apiKey ? '✅ Present (length: ' + this.apiKey.length + ')' : '❌ MISSING');
+
+        if (!this.apiKey) {
+            console.error('❌ [Chatbot] GEMINI_API_KEY not found in environment variables!');
+        } else {
+            console.log('✅ [Chatbot] Chatbot initialized with Gemini REST API');
         }
     }
 
     /**
-     * Generate response with farm context
+     * Generate response with farm context and conversation history
      */
     async generateResponse(
         userMessage: string,
         context: FarmContext,
-        chatHistory: ChatMessage[] = []
-    ): Promise<string> {
-        // Build context-aware prompt
+        chatHistory: GeminiMessage[] = []
+    ): Promise<{ response: string; updatedHistory: GeminiMessage[] }> {
+        console.log('📨 [Chatbot] generateResponse called');
+        console.log('   User message:', userMessage);
+        console.log('   History length:', chatHistory.length);
+        console.log('   API Key available:', !!this.apiKey);
+
+        if (!this.apiKey) {
+            console.error('❌ [Chatbot] CRITICAL: API Key not available!');
+            throw new Error('Gemini API is not configured. Please add GEMINI_API_KEY to .env.local and restart the server.');
+        }
+
+        // Limit history to last 15 messages
+        const limitedHistory = chatHistory.slice(-15);
+
+        // Build context-aware system prompt
         const systemPrompt = this.buildSystemPrompt(context);
-        const fullPrompt = `${systemPrompt}\n\nUser Question: ${userMessage}`;
+        console.log('   System prompt length:', systemPrompt.length);
 
         try {
-            if (this.model) {
-                // Use Gemini API
-                const result = await this.model.generateContent(fullPrompt);
-                const response = await result.response;
-                return response.text();
+            console.log('🤖 [Chatbot] Using Gemini REST API (gemini-2.5-flash)');
+            console.log('   Limited history items:', limitedHistory.length);
+
+            // Build contents array for Gemini API
+            const contents = [];
+
+            // Add system context as first user message if no history
+            if (limitedHistory.length === 0) {
+                contents.push({
+                    role: 'user',
+                    parts: [{ text: `${systemPrompt}\n\nUser Question: ${userMessage}` }]
+                });
             } else {
-                // Fallback: Rule-based responses
-                return this.getFallbackResponse(userMessage, context);
+                // Add history
+                for (const msg of limitedHistory) {
+                    contents.push({
+                        role: msg.role,
+                        parts: [{ text: msg.parts }]
+                    });
+                }
+                // Add current message
+                contents.push({
+                    role: 'user',
+                    parts: [{ text: userMessage }]
+                });
             }
+
+            // Call Gemini API directly using REST
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
+
+            console.log('   Calling Gemini REST API...');
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: contents,
+                    generationConfig: {
+                        temperature: 0.7,
+                        topK: 40,
+                        topP: 0.9,
+                        maxOutputTokens: 1024,
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ [Chatbot] Gemini API HTTP error:', response.status);
+                console.error('   Error response:', errorText);
+                throw new Error(`Gemini API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ [Chatbot] Gemini API response received');
+
+            // Extract response text
+            const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!responseText) {
+                console.error('❌ [Chatbot] No text in response');
+                console.error('   Full response:', JSON.stringify(data).substring(0, 500));
+                throw new Error('No response text from Gemini');
+            }
+
+            console.log('✅ [Chatbot] Response text extracted, length:', responseText.length);
+            console.log('🚀 [Chatbot] ✅ CHATBOT RESPONSE SOURCE: GEMINI AI');
+
+            // Update history with new exchange
+            const updatedHistory: GeminiMessage[] = [
+                ...limitedHistory,
+                { role: 'user', parts: userMessage },
+                { role: 'model', parts: responseText }
+            ];
+
+            return { response: responseText, updatedHistory };
+
         } catch (error) {
-            console.error('Gemini API error:', error);
-            return this.getFallbackResponse(userMessage, context);
+            console.error('❌ [Chatbot] Gemini API error:', error);
+            if (error instanceof Error) {
+                console.error('   Error message:', error.message);
+            }
+
+            // Simple error message - NO RULE-BASED FALLBACK
+            const errorMessage = 'Krishi Sevak AI is temporarily unavailable. Please try again in a moment.';
+            console.log('⚠️ [Chatbot] Returning error message');
+
+            return {
+                response: errorMessage,
+                updatedHistory: [...limitedHistory,
+                { role: 'user', parts: userMessage },
+                { role: 'model', parts: errorMessage }
+                ]
+            };
         }
     }
 
@@ -74,50 +177,6 @@ Answer the following question:`;
     }
 
     /**
-     * Fallback rule-based responses when API is unavailable
-     */
-    private getFallbackResponse(userMessage: string, context: FarmContext): string {
-        const msg = userMessage.toLowerCase();
-
-        // Irrigation questions
-        if (msg.includes('irrigat') || msg.includes('water')) {
-            if (context.currentSoilMoisture < 30) {
-                return `Based on your current soil moisture of ${context.currentSoilMoisture.toFixed(1)}%, your ${context.cropType} needs irrigation soon. Your ${context.growthStage} stage requires adequate water. ${context.nextIrrigation ? `Next irrigation is scheduled for ${new Date(context.nextIrrigation).toLocaleDateString()}.` : 'I recommend scheduling irrigation within 24 hours.'}`;
-            } else {
-                return `Your soil moisture is at a healthy ${context.currentSoilMoisture.toFixed(1)}%. No immediate irrigation needed for your ${context.cropType} in ${context.growthStage} stage.`;
-            }
-        }
-
-        // Crop health
-        if (msg.includes('health') || msg.includes('growing')) {
-            return `Your ${context.cropType} is currently in the ${context.growthStage} stage. Based on soil moisture levels at ${context.currentSoilMoisture.toFixed(1)}%, the crop appears ${context.currentSoilMoisture > 40 ? 'healthy' : 'stressed'}. Ensure proper nutrition and monitor for pests during this critical phase.`;
-        }
-
-        // Yellow leaves / diseases
-        if (msg.includes('yellow') || msg.includes('disease')) {
-            return `Yellowing leaves can indicate:\n\n1. **Nitrogen Deficiency**: Apply nitrogen-rich fertilizer\n2. **Overwatering**: Your current moisture is ${context.currentSoilMoisture.toFixed(1)}% - reduce irrigation if too high\n3. **Pest Infestation**: Check for aphids or mites\n4. **Root Diseases**: Improve drainage if soil is waterlogged\n\nRecommendation: Inspect leaves closely and adjust watering based on soil moisture readings.`;
-        }
-
-        // Weather related
-        if (msg.includes('weather') || msg.includes('rain')) {
-            return `Current weather conditions: ${context.weatherConditions}. I'm monitoring forecast data to optimize your irrigation schedule. GreenGuard AI will automatically adjust watering plans if rain is predicted.`;
-        }
-
-        // General farming advice
-        if (msg.includes('advice') || msg.includes('tips')) {
-            return `For ${context.cropType} in ${context.growthStage} stage:\n\n✅ Maintain soil moisture between 40-70%\n✅ Monitor for pests and diseases regularly\n✅ Apply appropriate fertilizers based on growth stage\n✅ Use drip irrigation for water efficiency\n✅ Check weather forecasts before irrigation\n\nYour current moisture (${context.currentSoilMoisture.toFixed(1)}%) is ${context.currentSoilMoisture >= 40 && context.currentSoilMoisture <= 70 ? 'optimal' : 'outside optimal range'}.`;
-        }
-
-        // Hindi greeting
-        if (msg.includes('namaste') || msg.includes('namaskar')) {
-            return `🙏 नमस्ते! मैं कृषि सहायक हूं। मैं आपकी ${context.cropType} फसल की देखभाल में मदद करूंगा। कृपया अपना सवाल पूछें।`;
-        }
-
-        // Default response
-        return `I'm Krishi Sahayak, your AI farming assistant! 🌾\n\nI can help with:\n- Irrigation scheduling and water management\n- Crop health and disease diagnosis\n- Growth stage requirements\n- Weather-based recommendations\n- Sustainable farming practices\n\nYour ${context.cropType} (${context.growthStage} stage) has ${context.currentSoilMoisture.toFixed(1)}% soil moisture. How can I assist you today?`;
-    }
-
-    /**
      * Diagnose crop disease based on symptoms
      */
     async diagnoseCropDisease(symptoms: string, cropType: string): Promise<string> {
@@ -132,10 +191,19 @@ Provide:
 Keep response practical and concise.`;
 
         try {
-            if (this.model) {
-                const result = await this.model.generateContent(prompt);
-                const response = await result.response;
-                return response.text();
+            if (this.apiKey) {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+                    })
+                });
+
+                const data = await response.json();
+                return data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Unable to diagnose at this time.';
             }
         } catch (error) {
             console.error('Disease diagnosis error:', error);
