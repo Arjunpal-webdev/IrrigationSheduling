@@ -105,9 +105,36 @@ export async function POST(request: NextRequest) {
         if (error instanceof Error) {
             console.error('   Error message:', error.message);
             console.error('   Error stack:', error.stack);
+
+            // More specific error messages
+            if (error.message.includes('not authorized') || error.message.includes('403')) {
+                console.error('   ⚠️  GEMINI API KEY AUTHORIZATION ERROR!');
+                console.error('   Please check: https://makersuite.google.com/app/apikey');
+                return NextResponse.json(
+                    { error: '🔑 API key error. Please verify your Gemini API key is valid and has access to the gemini-pro model. Check https://makersuite.google.com/app/apikey' },
+                    { status: 403 }
+                );
+            }
+
+            if (error.message.includes('API Key')) {
+                console.error('   ⚠️  GEMINI_API_KEY not configured properly!');
+                return NextResponse.json(
+                    { error: 'AI service configuration error. Please contact support.' },
+                    { status: 500 }
+                );
+            }
+
+            if (error.message.includes('fetch') || error.message.includes('network')) {
+                console.error('   ⚠️  Network error connecting to Gemini API');
+                return NextResponse.json(
+                    { error: 'Network error. Please check your connection and try again.' },
+                    { status: 503 }
+                );
+            }
         }
+
         return NextResponse.json(
-            { error: 'Krishi Sevak is currently unavailable. Please try again.' },
+            { error: 'Krishi Sevak is temporarily unavailable. Our AI assistant will be back shortly. Please try again in a moment.' },
             { status: 500 }
         );
     }

@@ -79,9 +79,9 @@ export class KrishiSahayakChatbot {
             }
 
             // Call Gemini API directly using REST
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
 
-            console.log('   Calling Gemini REST API...');
+            console.log('   Calling Gemini REST API (v1 - gemini-2.5-flash)...');
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
@@ -102,6 +102,18 @@ export class KrishiSahayakChatbot {
                 const errorText = await response.text();
                 console.error('❌ [Chatbot] Gemini API HTTP error:', response.status);
                 console.error('   Error response:', errorText);
+
+                // Specific handling for 403 errors
+                if (response.status === 403) {
+                    console.error('   🚨 403 FORBIDDEN - API Key issue!');
+                    console.error('   Possible causes:');
+                    console.error('   1. API key is invalid or expired');
+                    console.error('   2. API key not authorized for gemini-pro model');
+                    console.error('   3. Billing not enabled or quota exceeded');
+                    console.error('   4. API key restrictions (IP/referrer) blocking request');
+                    throw new Error('Gemini API key is not authorized. Please check your API key at https://makersuite.google.com/app/apikey');
+                }
+
                 throw new Error(`Gemini API error: ${response.status}`);
             }
 
@@ -192,7 +204,7 @@ Keep response practical and concise.`;
 
         try {
             if (this.apiKey) {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',

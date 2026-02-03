@@ -87,7 +87,7 @@ export default function KrishiSahayak() {
             const errorMessage: ChatMessage = {
                 id: String(Date.now() + 1),
                 role: 'assistant',
-                content: 'Krishi Sevak is currently unavailable. Please try again.',
+                content: '🙏 Namaste! I am experiencing technical difficulties connecting to the AI service. Please check your internet connection and try again in a moment. If the problem persists, the Gemini API might be temporarily unavailable.',
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMessage]);
@@ -301,11 +301,17 @@ export default function KrishiSahayak() {
                         <div style={{
                             padding: '0.75rem 1rem',
                             borderRadius: '16px 16px 16px 4px',
-                            background: 'white',
+                            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                            color: 'white',
                             boxShadow: 'var(--shadow-sm)'
                         }}>
-                            <div className="pulse" style={{ display: 'flex', gap: '0.25rem' }}>
-                                <span>●</span><span>●</span><span>●</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div className="pulse" style={{ display: 'flex', gap: '0.25rem' }}>
+                                    <span>●</span><span>●</span><span>●</span>
+                                </div>
+                                <span style={{ fontSize: '0.85rem', opacity: 0.95 }}>
+                                    Krishi Sevak is thinking...
+                                </span>
                             </div>
                         </div>
                     </div>
