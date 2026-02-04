@@ -146,6 +146,17 @@ export class WeatherService {
                 }
             });
 
+            // DIAGNOSTIC LOGGING - RAW API RESPONSE
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━");
+            console.log("📡 RAW WEATHER API RESPONSE:");
+            console.log("Daily data:", JSON.stringify(response.data.daily, null, 2));
+            console.log("Hourly data (first 3):", JSON.stringify({
+                times: response.data.hourly.time.slice(0, 3),
+                humidity: response.data.hourly.relativehumidity_2m.slice(0, 3),
+                windSpeed: response.data.hourly.windspeed_10m.slice(0, 3)
+            }, null, 2));
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━");
+
             const { daily, hourly } = response.data;
 
             // Get today's data (first day in the arrays)
@@ -172,7 +183,7 @@ export class WeatherService {
                 ? todayHourlyIndices.reduce((sum, i) => sum + hourly.windspeed_10m[i], 0) / todayHourlyIndices.length
                 : 2.5; // fallback
 
-            return {
+            const processedData = {
                 minTemp: Math.round(minTemp * 10) / 10,
                 maxTemp: Math.round(maxTemp * 10) / 10,
                 humidity: Math.round(avgHumidity),
@@ -180,6 +191,14 @@ export class WeatherService {
                 sunshineHours,
                 rainfall: Math.round(rainfall * 100) / 100
             };
+
+            // Log processed data
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━");
+            console.log("✅ PROCESSED WEATHER DATA:");
+            console.log(JSON.stringify(processedData, null, 2));
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━");
+
+            return processedData;
         } catch (error) {
             console.error('Forecast API error:', error);
             throw new Error('Failed to fetch forecast data');
@@ -231,12 +250,13 @@ export class WeatherService {
         try {
             const data = await this.getCurrentForecast(lat, lon);
 
-            // Calculate ET₀
+            // Calculate ET₀ with sunshine hours
             const et0 = ETCalculator.calculateET0({
                 tempMin: data.minTemp,
                 tempMax: data.maxTemp,
                 humidity: data.humidity,
                 windSpeed: data.windSpeed,
+                sunshineHours: data.sunshineHours,
                 latitude: lat,
                 date: new Date()
             });

@@ -75,23 +75,17 @@ export default function IrrigationCalculator() {
     const fetchWeatherData = async () => {
         if (!state || !district) return;
 
-        const coords = getDistrictCoordinates(state, district);
-        if (!coords) {
-            console.error('Could not find coordinates for selected location');
-            return;
-        }
-
         setWeatherLoading(true);
         try {
             const response = await fetch(
-                `/api/weather?lat=${coords.latitude}&lon=${coords.longitude}`
+                `/api/weather?district=${encodeURIComponent(district)}`
             );
             const data = await response.json();
 
             if (data.current) {
                 // Auto-fill weather fields
-                setTempMin(((data.current.temp - 5) || 15).toFixed(1));
-                setTempMax(((data.current.temp + 5) || 30).toFixed(1));
+                setTempMin(((data.current.temperature - 5) || 15).toFixed(1));
+                setTempMax(((data.current.temperature + 5) || 30).toFixed(1));
                 setHumidity((data.current.humidity || 60).toString());
                 setWindSpeed((data.current.windSpeed || 2).toFixed(1));
                 setSunshineHours('8'); // Default, can be enhanced
@@ -151,6 +145,7 @@ export default function IrrigationCalculator() {
             tempMax: tempMaxNum,
             humidity: humidityNum,
             windSpeed: windSpeedNum,
+            sunshineHours: parseFloat(sunshineHours || '8'),
             latitude: latitude,
             date: new Date()
         });
@@ -495,7 +490,7 @@ export default function IrrigationCalculator() {
                                 <p className={styles.resultLabel}>Reference ET (ET₀)</p>
                                 <p className={styles.resultValue}>{et0.toFixed(2)} mm/day</p>
                                 <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-                                    Hargreaves-Samani method
+                                    FAO Penman-Monteith method
                                 </p>
                             </div>
                         </div>
@@ -587,7 +582,7 @@ export default function IrrigationCalculator() {
                             📚 Scientific Methodology
                         </h4>
                         <ul style={{ fontSize: '0.875rem', color: '#78350F', paddingLeft: '1.5rem' }}>
-                            <li>ET₀ calculated using FAO-56 Hargreaves-Samani equation</li>
+                            <li>ET₀ calculated using FAO Penman-Monteith equation</li>
                             <li>Crop coefficient (Kc) assigned based on FAO-56 crop database</li>
                             <li>Internal use of critical depletion factor (p = {(getCriticalDepletionFactor(crop) * 100).toFixed(0)}%) for irrigation scheduling</li>
                             <li>Effective rainfall accounts for runoff and deep percolation losses</li>

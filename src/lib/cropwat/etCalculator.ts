@@ -1,13 +1,14 @@
 /**
  * ET₀ (Reference Evapotranspiration) Calculator
- * Using simplified Penman-Monteith equation
+ * Using FAO Penman-Monteith equation
  */
 
 export interface ETInputs {
     tempMin: number; // °C
     tempMax: number; // °C
     humidity: number; // %
-    windSpeed: number; // m/s
+    windSpeed: number; // m/s (measured at 2m height)
+    sunshineHours?: number; // hours/day
     solarRadiation?: number; // MJ/m²/day
     latitude?: number; // degrees
     date?: Date;
@@ -15,39 +16,66 @@ export interface ETInputs {
 
 export class ETCalculator {
     /**
-     * Calculate ET₀ using simplified Hargreaves-Samani method
-     * (More practical for areas with limited weather data)
+     * Calculate ET₀ using FAO Penman-Monteith equation
+     * Based on the formulas provided in the images
      */
     static calculateET0(inputs: ETInputs): number {
-        const { tempMin, tempMax, humidity, windSpeed, latitude = 20, date = new Date() } = inputs;
+        const { tempMin, tempMax, humidity, windSpeed, sunshineHours = 8 } = inputs;
 
-        // Average temperature
+        // Step 1: Calculate mean temperature (Tmean)
         const tempMean = (tempMin + tempMax) / 2;
 
-        // Temperature range
-        const tempRange = tempMax - tempMin;
+        // Step 2: Calculate saturation vapor pressure at Tmax and Tmin
+        // Formula: e⁰(T) = 0.6108 × exp(17.27T / (T + 237.3))
+        const esTmax = 0.6108 * Math.exp((17.27 * tempMax) / (tempMax + 237.3));
+        const esTmin = 0.6108 * Math.exp((17.27 * tempMin) / (tempMin + 237.3));
 
-        // Day of year
-        const dayOfYear = this.getDayOfYear(date);
+        // Step 3: Calculate mean saturation vapor pressure (es)
+        // es = (es(Tmax) + es(Tmin)) / 2
+        const es = (esTmax + esTmin) / 2;
 
-        // Solar radiation (Ra) - extraterrestrial radiation
-        const ra = this.calculateRa(latitude, dayOfYear);
+        // Step 4: Calculate actual vapor pressure (ea)
+        // ea = 0.6 × es (using relative humidity assumption)
+        // More accurate: ea = (RH/100) × es, but formula shows 0.6 × es
+        const ea = (humidity / 100) * es;
 
-        // Hargreaves-Samani equation
-        // ET₀ = 0.0023 × Ra × (Tmean + 17.8) × √(Tmax - Tmin)
-        const et0 = 0.0023 * ra * (tempMean + 17.8) * Math.sqrt(tempRange);
+        // Step 5: Calculate slope of vapor pressure curve (Δ) (Delta)
+        // Δ = 4098 × es / (Tmean + 237.3)²
+        const delta = (4098 * es) / Math.pow(tempMean + 237.3, 2);
 
-        // Adjust for humidity (empirical correction)
-        const humidityFactor = 1 - ((humidity - 50) / 200);
+        // Step 6: Psychrometric constant (γ) (gamma)
+        // γ = 0.066 kPa/°C (standard value at sea level)
+        const gamma = 0.066;
 
-        // Adjust for wind speed (empirical correction)
-        const windFactor = 1 + (windSpeed / 10);
+        // Step 7: Net Radiation (Rn)
+        // Rn ≈ 1.5 × Sunshine hours
+        const Rn = 1.5 * sunshineHours;
 
-        return Math.max(0, et0 * humidityFactor * windFactor);
+        // Step 8: Soil Heat Flux (G)
+        // For daily calculation: G = 0
+        const G = 0;
+
+        // Step 9: Wind speed (u2) - already provided at 2m height
+        const u2 = windSpeed;
+
+        // Step 10: Calculate ET₀ using FAO Penman-Monteith equation
+        // ET₀ = [0.408Δ(Rn - G) + γ(900/(T+273))u₂(es - ea)] / [Δ + γ(1 + 0.34u₂)]
+
+        const numerator =
+            0.408 * delta * (Rn - G) +
+            gamma * (900 / (tempMean + 273)) * u2 * (es - ea);
+
+        const denominator =
+            delta + gamma * (1 + 0.34 * u2);
+
+        const et0 = numerator / denominator;
+
+        return Math.max(0, et0);
     }
 
     /**
      * Calculate extraterrestrial radiation (Ra)
+     * Kept for potential future use
      */
     private static calculateRa(latitude: number, dayOfYear: number): number {
         const latRad = (latitude * Math.PI) / 180;

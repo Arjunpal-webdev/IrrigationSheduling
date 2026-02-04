@@ -5,7 +5,7 @@ import { WeatherForecast } from '@/types';
 import { useLocation } from '@/contexts/LocationContext';
 
 export default function WeatherWidget() {
-    const { lat, lon, state, district, weatherCache, setWeatherCache } = useLocation();
+    const { state, district, weatherCache, setWeatherCache } = useLocation();
 
     const [forecast, setForecast] = useState<WeatherForecast[]>([]);
     const [loading, setLoading] = useState(true);
@@ -21,12 +21,11 @@ export default function WeatherWidget() {
         if (weatherCache?.locationKey === locationKey && weatherCache.data) {
             // Use cached data
             const data = weatherCache.data;
-            if (data.current) {
-                setCurrentTemp(data.current.temp || 28);
-                setDescription(data.current.description || 'Clear sky');
-                setHumidity(data.current.humidity || 60);
-            }
-            if (data.forecast) {
+            if (data.forecast && data.forecast.length > 0) {
+                const today = data.forecast[0];
+                setCurrentTemp(today.tempMax);
+                setDescription(today.description);
+                setHumidity(today.humidity);
                 setForecast(data.forecast.slice(0, 7));
             }
             setLoading(false);
@@ -34,30 +33,37 @@ export default function WeatherWidget() {
         }
 
         // No cache or location changed - fetch new data
-        fetchWeather();
-    }, [lat, lon, state, district, weatherCache]);
+        if (district) {
+            fetchWeather();
+        }
+    }, [state, district, weatherCache]);
 
     const fetchWeather = async () => {
         setLoading(true);
         setError('');
 
         try {
-            const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+            const response = await fetch(`/api/weather?district=${encodeURIComponent(district)}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch weather data');
             }
 
             const data = await response.json();
 
-            // Update current weather from API
-            if (data.current) {
-                setCurrentTemp(data.current.temp || 28);
-                setDescription(data.current.description || 'Clear sky');
-                setHumidity(data.current.humidity || 60);
-            }
+            // Extract current weather from today's forecast (first day)
+            if (data.forecast && data.forecast.length > 0) {
+                const today = data.forecast[0];
 
-            // Update forecast
-            if (data.forecast) {
+                // Use today's max temperature for current display
+                setCurrentTemp(today.tempMax);
+
+                // Set description based on today's conditions
+                setDescription(today.description);
+
+                // Use today's actual humidity
+                setHumidity(today.humidity);
+
+                // Set full forecast
                 setForecast(data.forecast.slice(0, 7));
             }
 
