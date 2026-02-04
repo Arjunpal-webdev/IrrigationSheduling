@@ -8,6 +8,7 @@ import SoilMoistureWidget from '@/components/Dashboard/SoilMoistureWidget';
 import WeatherWidget from '@/components/Dashboard/WeatherWidget';
 import IrrigationSchedule from '@/components/Dashboard/IrrigationSchedule';
 import AlertsPanel from '@/components/Dashboard/AlertsPanel';
+import { useLocation } from '@/contexts/LocationContext';
 import styles from './dashboard.module.css';
 
 // Heavy components loaded dynamically to prevent UI freeze
@@ -22,12 +23,8 @@ const KrishiSahayak = dynamic(() => import('@/components/Chat/KrishiSahayak'), {
 });
 
 export default function DashboardClient() {
+    const { state, district } = useLocation();
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [location, setLocation] = useState({
-        city: 'Pune',
-        lat: 18.5204,
-        lon: 73.8567
-    });
     const [showFieldModal, setShowFieldModal] = useState(false);
     const [fields, setFields] = useState<any[]>([]);
     const [notifications] = useState([
@@ -60,15 +57,11 @@ export default function DashboardClient() {
         return () => clearInterval(timer);
     }, []);
 
-    const handleLocationChange = (lat: number, lon: number, city: string) => {
-        setLocation({ city, lat, lon });
-    };
-
     // Export Report Handler
     const handleExportReport = () => {
         const dashboardData = {
             generatedAt: new Date().toISOString(),
-            location: location,
+            location: { district, state },
             stats: {
                 soilMoisture: { value: '42%', status: 'Optimal' },
                 cropHealth: { value: '88/100', status: 'Good' },
@@ -166,7 +159,7 @@ export default function DashboardClient() {
             {/* Main Content Area */}
             <div className={styles.mainContent}>
                 {/* Top Header */}
-                <DashboardHeader userName="Farmer" onLocationChange={handleLocationChange} notifications={notifications} />
+                <DashboardHeader userName="Farmer" notifications={notifications} />
 
                 {/* Dashboard Content */}
                 <main className={styles.contentArea}>
@@ -175,7 +168,7 @@ export default function DashboardClient() {
                         <div>
                             <h2 className={styles.pageTitle}>Farm Dashboard</h2>
                             <p className={styles.pageSubtitle}>
-                                📍 {location.city}, India • {currentTime.toLocaleDateString('en-US', {
+                                📍 {district}, {state} • {currentTime.toLocaleDateString('en-US', {
                                     weekday: 'long',
                                     year: 'numeric',
                                     month: 'long',
@@ -225,9 +218,9 @@ export default function DashboardClient() {
                             />
                         </div>
 
-                        {/* Weather Widget */}
+                        {/* Weather Widget - uses header location */}
                         <div className={styles.gridItem} style={{ gridColumn: 'span 8' }}>
-                            <WeatherWidget lat={location.lat} lon={location.lon} />
+                            <WeatherWidget />
                         </div>
 
                         {/* Moisture Chart - Full Width */}

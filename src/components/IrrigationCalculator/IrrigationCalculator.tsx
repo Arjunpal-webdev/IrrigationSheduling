@@ -18,10 +18,11 @@ import {
     getDistrictsByState,
     getDistrictCoordinates
 } from '@/lib/locationData';
+import SearchableSelect from '../SearchableSelect/SearchableSelect';
 
 // FAO-based Irrigation Calculator
 export default function IrrigationCalculator() {
-    // Location inputs
+    // Location inputs (local state, not shared)
     const [state, setState] = useState<string>('');
     const [district, setDistrict] = useState<string>('');
     const [localAddress, setLocalAddress] = useState<string>('');
@@ -247,19 +248,15 @@ export default function IrrigationCalculator() {
                                 <span className={styles.labelIcon}>📍</span>
                                 District *
                             </label>
-                            <select
+                            <SearchableSelect
                                 id="districtSelect"
-                                className={styles.formInput}
+                                options={districtsList.map(d => d.name)}
                                 value={district}
-                                onChange={(e) => setDistrict(e.target.value)}
-                                required
+                                onChange={setDistrict}
+                                placeholder="Type to search district..."
                                 disabled={!state}
-                            >
-                                <option value="">Select District...</option>
-                                {districtsList.map(d => (
-                                    <option key={d.name} value={d.name}>{d.name}</option>
-                                ))}
-                            </select>
+                                required
+                            />
                         </div>
                     </div>
 

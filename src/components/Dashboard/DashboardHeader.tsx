@@ -3,6 +3,12 @@
 import styles from './DashboardHeader.module.css';
 import { useState, useRef, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
+import { useLocation } from '@/contexts/LocationContext';
+import SearchableSelect from '../SearchableSelect/SearchableSelect';
+import {
+    getAvailableStates,
+    getDistrictsByState
+} from '@/lib/locationData';
 
 interface DashboardHeaderProps {
     userName?: string;
@@ -10,19 +16,11 @@ interface DashboardHeaderProps {
     notifications?: Array<{ id: number; message: string; type: string; time: string }>;
 }
 
-const CITIES = [
-    { name: 'Mumbai', lat: 19.0760, lon: 72.8777 },
-    { name: 'Delhi', lat: 28.7041, lon: 77.1025 },
-    { name: 'Bangalore', lat: 12.9716, lon: 77.5946 },
-    { name: 'Pune', lat: 18.5204, lon: 73.8567 },
-    { name: 'Hyderabad', lat: 17.3850, lon: 78.4867 },
-    { name: 'Nashik', lat: 19.9975, lon: 73.7898 },
-    { name: 'Nagpur', lat: 21.1458, lon: 79.0882 },
-    { name: 'Ahmednagar', lat: 19.0948, lon: 74.7480 }
-];
-
 export default function DashboardHeader({ userName = 'Farmer', onLocationChange, notifications = [] }: DashboardHeaderProps) {
-    const [selectedCity, setSelectedCity] = useState('Pune');
+    const { state: globalState, district: globalDistrict, lat, lon, setLocation } = useLocation();
+
+    const [state, setState] = useState(globalState);
+    const [district, setDistrict] = useState(globalDistrict);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [userData, setUserData] = useState<{ name: string; email: string } | null>(null);
@@ -30,12 +28,31 @@ export default function DashboardHeader({ userName = 'Farmer', onLocationChange,
     const notificationRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
 
-    const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const cityName = e.target.value;
-        setSelectedCity(cityName);
-        const city = CITIES.find(c => c.name === cityName);
-        if (city && onLocationChange) {
-            onLocationChange(city.lat, city.lon, city.name);
+    const availableStates = getAvailableStates();
+    const districtsList = state ? getDistrictsByState(state) : [];
+
+    // Sync with global location
+    useEffect(() => {
+        setState(globalState);
+        setDistrict(globalDistrict);
+    }, [globalState, globalDistrict]);
+
+    const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newState = e.target.value;
+        setState(newState);
+        setDistrict(''); // Reset district when state changes
+    };
+
+    const handleDistrictChange = (newDistrict: string) => {
+        setDistrict(newDistrict);
+        if (state && newDistrict) {
+            // Update global location context
+            setLocation(state, newDistrict);
+
+            // Keep backward compatibility with callback (if needed)
+            if (onLocationChange) {
+                onLocationChange(lat, lon, `${newDistrict}, ${state}`);
+            }
         }
     };
 
@@ -134,30 +151,44 @@ export default function DashboardHeader({ userName = 'Farmer', onLocationChange,
                     <button className={styles.menuBtn} title="Toggle menu">
                         ☰
                     </button>
-                    <div style={{ marginLeft: '1rem' }}>
-                        <label style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginRight: '0.5rem' }}>
+                    <div style={{ marginLeft: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <label style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
                             📍 Location:
                         </label>
+
+                        {/* State Selector */}
                         <select
-                            value={selectedCity}
-                            onChange={handleCityChange}
+                            value={state}
+                            onChange={handleStateChange}
                             style={{
-                                padding: '0.5rem 1rem',
+                                padding: '0.5rem 0.75rem',
                                 borderRadius: '8px',
                                 border: '2px solid var(--color-primary-light)',
                                 background: 'white',
                                 color: 'var(--color-text-primary)',
                                 fontSize: '0.875rem',
                                 fontWeight: 600,
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                minWidth: '140px'
                             }}
                         >
-                            {CITIES.map(city => (
-                                <option key={city.name} value={city.name}>
-                                    {city.name}
-                                </option>
+                            <option value="">Select State...</option>
+                            {availableStates.map(s => (
+                                <option key={s} value={s}>{s}</option>
                             ))}
                         </select>
+
+                        {/* District Selector */}
+                        <div style={{ minWidth: '180px' }}>
+                            <SearchableSelect
+                                options={districtsList.map(d => d.name)}
+                                value={district}
+                                onChange={handleDistrictChange}
+                                placeholder="Select district..."
+                                disabled={!state}
+                                required
+                            />
+                        </div>
                     </div>
                 </div>
 

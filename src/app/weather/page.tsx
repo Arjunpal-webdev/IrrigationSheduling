@@ -21,14 +21,30 @@ export default function WeatherPage() {
                         </div>
                     </div>
 
+                    {/* Weather Widget - uses header location */}
                     <div style={{ display: 'grid', gap: '1.5rem' }}>
                         <WeatherWidget />
 
                         <div className="card">
-                            <h3 style={{ marginBottom: '1rem' }}>Extended Forecast</h3>
-                            <p style={{ color: 'var(--color-text-muted)' }}>
-                                7-day weather forecast with AI optimization coming soon...
+                            <h3 style={{ marginBottom: '1rem' }}>📊 Weather Insights</h3>
+                            <p style={{ color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
+                                Get detailed weather analysis for better agricultural planning.
                             </p>
+                            <div style={{
+                                padding: '1rem',
+                                background: 'var(--gradient-subtle)',
+                                borderRadius: '8px'
+                            }}>
+                                <div style={{ fontSize: '0.875rem', lineHeight: 1.6 }}>
+                                    <strong>🌾 Agricultural Recommendations:</strong>
+                                    <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
+                                        <li>Check 7-day forecast before planning irrigation</li>
+                                        <li>Monitor rainfall predictions for water management</li>
+                                        <li>Adjust crop schedules based on temperature trends</li>
+                                        <li>Use location selector in header to change region</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </main>

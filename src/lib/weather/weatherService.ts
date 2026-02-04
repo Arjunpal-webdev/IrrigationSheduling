@@ -1,49 +1,253 @@
 /**
  * Weather Service
- * Integration with OpenWeatherMap API
+ * Integration with Open-Meteo API
  */
 
 import axios from 'axios';
 import { WeatherData, WeatherForecast } from '@/types';
 import { ETCalculator } from '../cropwat/etCalculator';
 
-const API_KEY = process.env.OPENWEATHER_API_KEY || '';
-const BASE_URL = 'https://api.openweathermap.org/data/2.5';
+const GEOCODING_API = 'https://geocoding-api.open-meteo.com/v1/search';
+const HISTORICAL_API = 'https://archive-api.open-meteo.com/v1/archive';
+const FORECAST_API = 'https://api.open-meteo.com/v1/forecast';
+
+interface GeocodingResult {
+    name: string;
+    latitude: number;
+    longitude: number;
+    country?: string;
+    admin1?: string;
+}
+
+interface HistoricalWeatherResponse {
+    hourly: {
+        time: string[];
+        temperature_2m: number[];
+        relativehumidity_2m: number[];
+        precipitation: number[];
+        windspeed_10m: number[];
+        sunshine_duration: number[];
+    };
+}
+
+interface ForecastWeatherResponse {
+    daily: {
+        time: string[];
+        temperature_2m_max: number[];
+        temperature_2m_min: number[];
+        precipitation_sum: number[];
+        sunshine_duration: number[];
+    };
+    hourly: {
+        time: string[];
+        relativehumidity_2m: number[];
+        windspeed_10m: number[];
+    };
+}
 
 export class WeatherService {
     /**
-     * Get current weather data
+     * Convert location name to coordinates using geocoding
      */
-    static async getCurrentWeather(lat: number, lon: number): Promise<WeatherData> {
+    static async geocodeLocation(locationName: string): Promise<{ lat: number; lon: number }> {
         try {
-            const response = await axios.get(`${BASE_URL}/weather`, {
+            const response = await axios.get(GEOCODING_API, {
                 params: {
-                    lat,
-                    lon,
-                    appid: API_KEY,
-                    units: 'metric'
+                    name: locationName,
+                    count: 1,
+                    language: 'en',
+                    format: 'json'
                 }
             });
 
-            const data = response.data;
+            if (!response.data.results || response.data.results.length === 0) {
+                throw new Error(`Location "${locationName}" not found`);
+            }
+
+            const result: GeocodingResult = response.data.results[0];
+            return {
+                lat: result.latitude,
+                lon: result.longitude
+            };
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.message.includes('not found')) {
+                throw error;
+            }
+            console.error('Geocoding API error:', error);
+            throw new Error(`Failed to geocode location: ${locationName}`);
+        }
+    }
+
+    /**
+     * Get historical weather data
+     */
+    static async getHistoricalWeather(
+        lat: number,
+        lon: number,
+        startDate: string,
+        endDate: string
+    ): Promise<Array<{ date: string; rain_mm: number }>> {
+        try {
+            const response = await axios.get<HistoricalWeatherResponse>(HISTORICAL_API, {
+                params: {
+                    latitude: lat,
+                    longitude: lon,
+                    start_date: startDate,
+                    end_date: endDate,
+                    hourly: 'temperature_2m,relativehumidity_2m,precipitation,windspeed_10m,sunshine_duration'
+                }
+            });
+
+            const { hourly } = response.data;
+
+            // Group by day and sum precipitation
+            const dailyRainfall = new Map<string, number>();
+
+            hourly.time.forEach((time, index) => {
+                const date = time.split('T')[0];
+                const precipitation = hourly.precipitation[index] || 0;
+
+                if (!dailyRainfall.has(date)) {
+                    dailyRainfall.set(date, 0);
+                }
+                dailyRainfall.set(date, dailyRainfall.get(date)! + precipitation);
+            });
+
+            return Array.from(dailyRainfall.entries()).map(([date, rain_mm]) => ({
+                date,
+                rain_mm: Math.round(rain_mm * 100) / 100 // Round to 2 decimal places
+            }));
+        } catch (error) {
+            console.error('Historical Weather API error:', error);
+            throw new Error('Failed to fetch historical weather data');
+        }
+    }
+
+    /**
+     * Get current and forecast weather data
+     */
+    static async getCurrentForecast(lat: number, lon: number): Promise<{
+        minTemp: number;
+        maxTemp: number;
+        humidity: number;
+        windSpeed: number;
+        sunshineHours: number;
+        rainfall: number;
+    }> {
+        try {
+            const response = await axios.get<ForecastWeatherResponse>(FORECAST_API, {
+                params: {
+                    latitude: lat,
+                    longitude: lon,
+                    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration',
+                    hourly: 'relativehumidity_2m,windspeed_10m',
+                    timezone: 'auto',
+                    forecast_days: 1
+                }
+            });
+
+            const { daily, hourly } = response.data;
+
+            // Get today's data (first day in the arrays)
+            const minTemp = daily.temperature_2m_min[0];
+            const maxTemp = daily.temperature_2m_max[0];
+            const rainfall = daily.precipitation_sum[0];
+            const sunshineDurationSeconds = daily.sunshine_duration[0];
+
+            // Convert sunshine duration from seconds to hours
+            const sunshineHours = Math.round((sunshineDurationSeconds / 3600) * 100) / 100;
+
+            // Calculate average humidity and wind speed for today
+            const todayDate = daily.time[0];
+            const todayHourlyIndices = hourly.time
+                .map((time, index) => ({ time, index }))
+                .filter(({ time }) => time.startsWith(todayDate))
+                .map(({ index }) => index);
+
+            const avgHumidity = todayHourlyIndices.length > 0
+                ? todayHourlyIndices.reduce((sum, i) => sum + hourly.relativehumidity_2m[i], 0) / todayHourlyIndices.length
+                : 60; // fallback
+
+            const avgWindSpeed = todayHourlyIndices.length > 0
+                ? todayHourlyIndices.reduce((sum, i) => sum + hourly.windspeed_10m[i], 0) / todayHourlyIndices.length
+                : 2.5; // fallback
+
+            return {
+                minTemp: Math.round(minTemp * 10) / 10,
+                maxTemp: Math.round(maxTemp * 10) / 10,
+                humidity: Math.round(avgHumidity),
+                windSpeed: Math.round(avgWindSpeed * 10) / 10,
+                sunshineHours,
+                rainfall: Math.round(rainfall * 100) / 100
+            };
+        } catch (error) {
+            console.error('Forecast API error:', error);
+            throw new Error('Failed to fetch forecast data');
+        }
+    }
+
+    /**
+     * Get complete weather data by location name
+     */
+    static async getWeatherByLocation(locationName: string): Promise<{
+        minTemp: number;
+        maxTemp: number;
+        humidity: number;
+        windSpeed: number;
+        sunshineHours: number;
+        rainfall: number;
+        pastRainfall: Array<{ date: string; rain_mm: number }>;
+    }> {
+        // Step 1: Geocode location
+        const { lat, lon } = await this.geocodeLocation(locationName);
+
+        // Step 2: Get current forecast
+        const currentData = await this.getCurrentForecast(lat, lon);
+
+        // Step 3: Get historical rainfall (last 30 days)
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+
+        const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
+        const pastRainfall = await this.getHistoricalWeather(
+            lat,
+            lon,
+            formatDate(startDate),
+            formatDate(endDate)
+        );
+
+        return {
+            ...currentData,
+            pastRainfall
+        };
+    }
+
+    /**
+     * Get current weather data (legacy support)
+     */
+    static async getCurrentWeather(lat: number, lon: number): Promise<WeatherData> {
+        try {
+            const data = await this.getCurrentForecast(lat, lon);
 
             // Calculate ET₀
             const et0 = ETCalculator.calculateET0({
-                tempMin: data.main.temp_min,
-                tempMax: data.main.temp_max,
-                humidity: data.main.humidity,
-                windSpeed: data.wind.speed,
+                tempMin: data.minTemp,
+                tempMax: data.maxTemp,
+                humidity: data.humidity,
+                windSpeed: data.windSpeed,
                 latitude: lat,
                 date: new Date()
             });
 
             return {
                 timestamp: new Date(),
-                temperature: data.main.temp,
-                humidity: data.main.humidity,
-                windSpeed: data.wind.speed,
-                solarRadiation: 15, // Estimated (would need additional API)
-                precipitation: data.rain?.['1h'] || 0,
+                temperature: (data.minTemp + data.maxTemp) / 2,
+                humidity: data.humidity,
+                windSpeed: data.windSpeed,
+                solarRadiation: data.sunshineHours * 3.6, // Rough conversion
+                precipitation: data.rainfall,
                 et0
             };
         } catch (error) {
@@ -53,33 +257,45 @@ export class WeatherService {
     }
 
     /**
-     * Get 7-day weather forecast
+     * Get 7-day weather forecast (legacy support)
      */
     static async getWeatherForecast(lat: number, lon: number): Promise<WeatherForecast[]> {
         try {
-            const response = await axios.get(`${BASE_URL}/forecast`, {
+            const response = await axios.get<ForecastWeatherResponse>(FORECAST_API, {
                 params: {
-                    lat,
-                    lon,
-                    appid: API_KEY,
-                    units: 'metric',
-                    cnt: 40 // 5 days, 3-hour intervals
+                    latitude: lat,
+                    longitude: lon,
+                    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration',
+                    hourly: 'relativehumidity_2m,windspeed_10m',
+                    timezone: 'auto',
+                    forecast_days: 7
                 }
             });
 
-            // Group by day and get daily summary
-            const dailyData = this.groupByDay(response.data.list);
+            const { daily, hourly } = response.data;
 
-            return dailyData.map(day => ({
-                date: day.date,
-                tempMin: day.tempMin,
-                tempMax: day.tempMax,
-                humidity: day.avgHumidity,
-                precipitation: day.totalPrecipitation,
-                precipitationProbability: day.precipitationProbability,
-                description: day.description,
-                icon: day.icon
-            }));
+            return daily.time.map((date, index) => {
+                // Get hourly data for this day
+                const dayHourlyIndices = hourly.time
+                    .map((time, i) => ({ time, i }))
+                    .filter(({ time }) => time.startsWith(date))
+                    .map(({ i }) => i);
+
+                const avgHumidity = dayHourlyIndices.length > 0
+                    ? dayHourlyIndices.reduce((sum, i) => sum + hourly.relativehumidity_2m[i], 0) / dayHourlyIndices.length
+                    : 60;
+
+                return {
+                    date,
+                    tempMin: daily.temperature_2m_min[index],
+                    tempMax: daily.temperature_2m_max[index],
+                    humidity: Math.round(avgHumidity),
+                    precipitation: daily.precipitation_sum[index],
+                    precipitationProbability: daily.precipitation_sum[index] > 0 ? 70 : 20,
+                    description: this.getWeatherDescription(daily.precipitation_sum[index]),
+                    icon: this.getWeatherIcon(daily.precipitation_sum[index])
+                };
+            });
         } catch (error) {
             console.error('Forecast API error:', error);
             return this.getMockForecast();
@@ -87,57 +303,23 @@ export class WeatherService {
     }
 
     /**
-     * Group forecast data by day
+     * Get weather description based on precipitation
      */
-    private static groupByDay(forecastList: any[]): any[] {
-        const days = new Map();
-
-        forecastList.forEach(item => {
-            const date = new Date(item.dt * 1000).toISOString().split('T')[0];
-
-            if (!days.has(date)) {
-                days.set(date, {
-                    date,
-                    temps: [],
-                    humidities: [],
-                    precipitation: 0,
-                    descriptions: [],
-                    icons: [],
-                    precipProbs: []
-                });
-            }
-
-            const day = days.get(date);
-            day.temps.push(item.main.temp);
-            day.humidities.push(item.main.humidity);
-            day.precipitation += item.rain?.['3h'] || 0;
-            day.descriptions.push(item.weather[0].description);
-            day.icons.push(item.weather[0].icon);
-            day.precipProbs.push(item.pop || 0);
-        });
-
-        return Array.from(days.values()).map(day => ({
-            date: day.date,
-            tempMin: Math.min(...day.temps),
-            tempMax: Math.max(...day.temps),
-            avgHumidity: day.humidities.reduce((a: number, b: number) => a + b, 0) / day.humidities.length,
-            totalPrecipitation: day.precipitation,
-            precipitationProbability: Math.max(...day.precipProbs) * 100,
-            description: this.getMostCommonDescription(day.descriptions),
-            icon: day.icons[Math.floor(day.icons.length / 2)]
-        })).slice(0, 7);
+    private static getWeatherDescription(precipitation: number): string {
+        if (precipitation === 0) return 'Clear sky';
+        if (precipitation < 2.5) return 'Light rain';
+        if (precipitation < 10) return 'Moderate rain';
+        return 'Heavy rain';
     }
 
     /**
-     * Get most common weather description
+     * Get weather icon based on precipitation
      */
-    private static getMostCommonDescription(descriptions: string[]): string {
-        const counts = descriptions.reduce((acc, desc) => {
-            acc[desc] = (acc[desc] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
-
-        return Object.entries(counts).reduce((a, b) => counts[a[0]] > counts[b[0]] ? a : b)[0];
+    private static getWeatherIcon(precipitation: number): string {
+        if (precipitation === 0) return '01d';
+        if (precipitation < 2.5) return '10d';
+        if (precipitation < 10) return '10d';
+        return '09d';
     }
 
     /**
