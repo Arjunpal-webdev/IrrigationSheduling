@@ -5,6 +5,9 @@
 
 import { WaterClass, CropSeason, Topology } from './soilDatabase';
 
+export type TempZone = 'cold' | 'mild' | 'warm' | 'hot';
+export type RainZone = 'dry' | 'moderate' | 'wet';
+
 export interface CropRequirements {
     name: string;
     displayName: string;
@@ -19,8 +22,11 @@ export interface CropRequirements {
     waterRequirement: WaterClass[];
     suitableSeasons: CropSeason[];
     preferredTopology: Topology[];
-    // Climate zones
+    // Climate zones (legacy - for fallback)
     climateZones: ('cold' | 'normal' | 'hot')[];
+    // Weather-based climate preferences
+    preferredTempZone: TempZone[];
+    preferredRainZone: RainZone[];
 }
 
 export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
@@ -36,7 +42,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['high'],
         suitableSeasons: ['kharif'],
         preferredTopology: ['flat'],
-        climateZones: ['normal', 'hot']
+        climateZones: ['normal', 'hot'],
+        preferredTempZone: ['warm'],
+        preferredRainZone: ['wet']
     },
     {
         name: 'wheat',
@@ -50,7 +58,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['medium-high', 'medium'],
         suitableSeasons: ['rabi'],
         preferredTopology: ['flat', 'sloppy'],
-        climateZones: ['cold', 'normal']
+        climateZones: ['cold', 'normal'],
+        preferredTempZone: ['mild'],
+        preferredRainZone: ['moderate']
     },
     {
         name: 'maize',
@@ -64,7 +74,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['medium-high', 'medium'],
         suitableSeasons: ['kharif', 'rabi'],
         preferredTopology: ['flat'],
-        climateZones: ['normal', 'hot']
+        climateZones: ['normal', 'hot'],
+        preferredTempZone: ['warm'],
+        preferredRainZone: ['moderate']
     },
     {
         name: 'cotton',
@@ -78,7 +90,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['medium-high'],
         suitableSeasons: ['kharif'],
         preferredTopology: ['flat', 'sloppy'],
-        climateZones: ['hot']
+        climateZones: ['hot'],
+        preferredTempZone: ['hot'],
+        preferredRainZone: ['dry', 'moderate']
     },
     {
         name: 'sugarcane',
@@ -92,7 +106,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['high'],
         suitableSeasons: ['kharif', 'zaid'],
         preferredTopology: ['flat'],
-        climateZones: ['normal', 'hot']
+        climateZones: ['normal', 'hot'],
+        preferredTempZone: ['warm'],
+        preferredRainZone: ['wet']
     },
     {
         name: 'potato',
@@ -106,7 +122,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['medium-high', 'medium'],
         suitableSeasons: ['rabi'],
         preferredTopology: ['flat', 'sloppy'],
-        climateZones: ['cold', 'normal']
+        climateZones: ['cold', 'normal'],
+        preferredTempZone: ['mild'],
+        preferredRainZone: ['moderate']
     },
     {
         name: 'tomato',
@@ -120,7 +138,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['medium-high'],
         suitableSeasons: ['rabi', 'zaid'],
         preferredTopology: ['flat'],
-        climateZones: ['normal', 'hot']
+        climateZones: ['normal', 'hot'],
+        preferredTempZone: ['warm', 'mild'],
+        preferredRainZone: ['moderate']
     },
     {
         name: 'onion',
@@ -134,7 +154,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['medium'],
         suitableSeasons: ['rabi', 'kharif'],
         preferredTopology: ['flat'],
-        climateZones: ['normal']
+        climateZones: ['normal'],
+        preferredTempZone: ['mild', 'warm'],
+        preferredRainZone: ['moderate']
     },
     {
         name: 'soybean',
@@ -148,7 +170,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['medium'],
         suitableSeasons: ['kharif'],
         preferredTopology: ['flat', 'sloppy'],
-        climateZones: ['normal', 'hot']
+        climateZones: ['normal', 'hot'],
+        preferredTempZone: ['warm'],
+        preferredRainZone: ['moderate']
     },
     {
         name: 'groundnut',
@@ -162,7 +186,9 @@ export const CROP_SUITABILITY_DATABASE: CropRequirements[] = [
         waterRequirement: ['medium'],
         suitableSeasons: ['kharif', 'zaid'],
         preferredTopology: ['flat', 'sloppy'],
-        climateZones: ['normal', 'hot']
+        climateZones: ['normal', 'hot'],
+        preferredTempZone: ['warm'],
+        preferredRainZone: ['dry']
     }
 ];
 

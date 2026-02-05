@@ -3,8 +3,9 @@
  * Rule-based matching system for crop suitability
  */
 
-import { CROP_SUITABILITY_DATABASE, CropRequirements, getClimateZone } from './cropSuitability';
+import { CROP_SUITABILITY_DATABASE, CropRequirements, getClimateZone, TempZone, RainZone } from './cropSuitability';
 import { WaterClass, CropSeason, Topology } from './soilDatabase';
+import { ClimateClassification } from './weatherClassification';
 
 export interface RecommendationInput {
     // Soil properties
@@ -19,6 +20,8 @@ export interface RecommendationInput {
     season: CropSeason;
     topology: Topology;
     state: string;
+    // Weather data (optional)
+    climate?: ClimateClassification;
 }
 
 export interface CropRecommendation {
@@ -27,6 +30,7 @@ export interface CropRecommendation {
     category: 'highly-suitable' | 'moderately-suitable' | 'not-recommended';
     reasons: string[];
     issues: string[];
+    climateSuitability?: 'good' | 'moderate' | 'poor';
 }
 
 /**
@@ -36,6 +40,7 @@ function calculateSuitability(crop: CropRequirements, input: RecommendationInput
     score: number;
     reasons: string[];
     issues: string[];
+    climateSuitability?: 'good' | 'moderate' | 'poor';
 } {
     let score = 100;
     const reasons: string[] = [];
@@ -118,7 +123,7 @@ function calculateSuitability(crop: CropRequirements, input: RecommendationInput
         reasons.push(`Suitable topology (${input.topology})`);
     }
 
-    // Check climate zone
+    // Check climate zone (legacy fallback)
     if (!crop.climateZones.includes(climateZone)) {
         score -= 15;
         issues.push(`Climate zone mismatch (needs ${crop.climateZones.join(' or ')} climate)`);
@@ -126,10 +131,44 @@ function calculateSuitability(crop: CropRequirements, input: RecommendationInput
         reasons.push(`Compatible climate zone (${climateZone})`);
     }
 
+    // Check weather-based climate (if available) - 25% weight
+    let climateSuitability: 'good' | 'moderate' | 'poor' | undefined;
+    if (input.climate) {
+        const { tempZone, rainZone } = input.climate;
+
+        // Temperature match
+        const tempMatch = crop.preferredTempZone.includes(tempZone);
+
+        // Rainfall match
+        const rainMatch = crop.preferredRainZone.includes(rainZone);
+
+        if (tempMatch && rainMatch) {
+            // Perfect climate match
+            climateSuitability = 'good';
+            reasons.push(`Excellent climate (${tempZone}, ${rainZone} rainfall)`);
+        } else if (tempMatch || rainMatch) {
+            // Partial match
+            climateSuitability = 'moderate';
+            score -= 10;
+            if (!tempMatch) {
+                issues.push(`Temperature not ideal (${tempZone}, prefers ${crop.preferredTempZone.join('/')})`);
+            }
+            if (!rainMatch) {
+                issues.push(`Rainfall not ideal (${rainZone}, prefers ${crop.preferredRainZone.join('/')})`);
+            }
+        } else {
+            // No match
+            climateSuitability = 'poor';
+            score -= 25;
+            issues.push(`Climate unsuitable (${tempZone} temp, ${rainZone} rainfall)`);
+        }
+    }
+
     return {
         score: Math.max(0, Math.min(100, score)),
         reasons,
-        issues
+        issues,
+        climateSuitability
     };
 }
 
@@ -140,7 +179,7 @@ export function getCropRecommendations(input: RecommendationInput): CropRecommen
     const recommendations: CropRecommendation[] = [];
 
     for (const crop of CROP_SUITABILITY_DATABASE) {
-        const { score, reasons, issues } = calculateSuitability(crop, input);
+        const { score, reasons, issues, climateSuitability } = calculateSuitability(crop, input);
 
         let category: 'highly-suitable' | 'moderately-suitable' | 'not-recommended';
         if (score >= 70) {
@@ -156,7 +195,8 @@ export function getCropRecommendations(input: RecommendationInput): CropRecommen
             suitabilityScore: score,
             category,
             reasons,
-            issues
+            issues,
+            climateSuitability
         });
     }
 

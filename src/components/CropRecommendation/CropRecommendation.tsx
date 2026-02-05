@@ -16,6 +16,8 @@ import {
     RecommendationInput,
     type CropRecommendation
 } from '@/lib/cropRecommendation/recommendationEngine';
+import { fetchAndClassifyClimate, type ClimateClassification } from '@/lib/cropRecommendation/weatherClassification';
+import { getFailsafeClimateData } from '@/lib/cropRecommendation/failsafeClimate';
 import {
     getAvailableStates,
     getDistrictsByState
@@ -41,6 +43,10 @@ export default function CropRecommendation() {
     const [season, setSeason] = useState<string>('');
     const [topology, setTopology] = useState<string>('');
 
+    // Weather / Climate
+    const [climate, setClimate] = useState<ClimateClassification | null>(null);
+    const [loadingWeather, setLoadingWeather] = useState<boolean>(false);
+
     // Results
     const [showResults, setShowResults] = useState<boolean>(false);
     const [recommendations, setRecommendations] = useState<CropRecommendation[]>([]);
@@ -62,6 +68,37 @@ export default function CropRecommendation() {
             }
         }
     }, [soilType]);
+
+    // Fetch weather data when district is selected
+    useEffect(() => {
+        if (state && district) {
+            const fetchWeather = async () => {
+                setLoadingWeather(true);
+                try {
+                    const districtData = getDistrictsByState(state).find(d => d.name === district);
+                    if (districtData) {
+                        const climateData = await fetchAndClassifyClimate(districtData.latitude, districtData.longitude);
+
+                        // If weather API failed, use failsafe agro-climate data
+                        if (!climateData) {
+                            const fallbackData = getFailsafeClimateData(state, season as CropSeason || 'kharif');
+                            setClimate(fallbackData);
+                        } else {
+                            setClimate(climateData);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch weather:', error);
+                    // Use failsafe on error
+                    const fallbackData = getFailsafeClimateData(state, season as CropSeason || 'kharif');
+                    setClimate(fallbackData);
+                } finally {
+                    setLoadingWeather(false);
+                }
+            };
+            fetchWeather();
+        }
+    }, [state, district, season]);
 
     const handleAnalyze = (e: React.FormEvent) => {
         e.preventDefault();
@@ -88,7 +125,8 @@ export default function CropRecommendation() {
             waterClass: getWaterClass(waterSource as WaterSource),
             season: season as CropSeason,
             topology: topology as Topology,
-            state: state
+            state: state,
+            climate: climate ?? undefined
         };
 
         // Get recommendations
@@ -431,6 +469,23 @@ export default function CropRecommendation() {
                                                     <li key={idx}>{reason}</li>
                                                 ))}
                                             </ul>
+                                            {rec.climateSuitability && (
+                                                <div style={{
+                                                    marginTop: '0.75rem',
+                                                    padding: '0.5rem',
+                                                    backgroundColor: rec.climateSuitability === 'good' ? '#D1FAE5' : rec.climateSuitability === 'moderate' ? '#FEF3C7' : '#fee2e2',
+                                                    borderRadius: '6px',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 600,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem'
+                                                }}>
+                                                    {rec.climateSuitability === 'good' && '🌤️ Climate: Excellent'}
+                                                    {rec.climateSuitability === 'moderate' && '☁️ Climate: Moderate'}
+                                                    {rec.climateSuitability === 'poor' && '⛈️ Climate: Poor'}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -479,6 +534,23 @@ export default function CropRecommendation() {
                                                     </ul>
                                                 </>
                                             )}
+                                            {rec.climateSuitability && (
+                                                <div style={{
+                                                    marginTop: '0.75rem',
+                                                    padding: '0.5rem',
+                                                    backgroundColor: rec.climateSuitability === 'good' ? '#D1FAE5' : rec.climateSuitability === 'moderate' ? '#FEF3C7' : '#fee2e2',
+                                                    borderRadius: '6px',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 600,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem'
+                                                }}>
+                                                    {rec.climateSuitability === 'good' && '🌤️ Climate: Excellent'}
+                                                    {rec.climateSuitability === 'moderate' && '☁️ Climate: Moderate'}
+                                                    {rec.climateSuitability === 'poor' && '⛈️ Climate: Poor'}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -524,6 +596,23 @@ export default function CropRecommendation() {
                                                     <li key={idx}>{issue}</li>
                                                 ))}
                                             </ul>
+                                            {rec.climateSuitability && (
+                                                <div style={{
+                                                    marginTop: '0.75rem',
+                                                    padding: '0.5rem',
+                                                    backgroundColor: rec.climateSuitability === 'good' ? '#D1FAE5' : rec.climateSuitability === 'moderate' ? '#FEF3C7' : '#fee2e2',
+                                                    borderRadius: '6px',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 600,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem'
+                                                }}>
+                                                    {rec.climateSuitability === 'good' && '🌤️ Climate: Excellent'}
+                                                    {rec.climateSuitability === 'moderate' && '☁️ Climate: Moderate'}
+                                                    {rec.climateSuitability === 'poor' && '⛈️ Climate: Poor'}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
