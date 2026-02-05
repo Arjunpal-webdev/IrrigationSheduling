@@ -12,6 +12,7 @@ interface SearchableSelectProps {
     required?: boolean;
     id?: string;
     label?: string;
+    dropdownPosition?: 'absolute' | 'fixed';
 }
 
 export default function SearchableSelect({
@@ -22,12 +23,14 @@ export default function SearchableSelect({
     disabled = false,
     required = false,
     id,
-    label
+    label,
+    dropdownPosition = 'absolute'
 }: SearchableSelectProps) {
     const [inputValue, setInputValue] = useState(value);
     const [filteredOptions, setFilteredOptions] = useState<string[]>(options);
     const [showDropdown, setShowDropdown] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const [fixedStyles, setFixedStyles] = useState<React.CSSProperties>({});
     const wrapperRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -68,9 +71,41 @@ export default function SearchableSelect({
         };
     }, [inputValue, options]);
 
+    // Calculate fixed position when dropdown opens
+    useEffect(() => {
+        if (showDropdown && dropdownPosition === 'fixed' && inputRef.current) {
+            const updatePosition = () => {
+                if (inputRef.current) {
+                    const rect = inputRef.current.getBoundingClientRect();
+                    setFixedStyles({
+                        position: 'fixed',
+                        top: `${rect.bottom + 4}px`,
+                        left: `${rect.left}px`,
+                        width: `${rect.width}px`,
+                        zIndex: 9999,
+                        maxHeight: '300px'
+                    });
+                }
+            };
+
+            updatePosition();
+            window.addEventListener('scroll', updatePosition, true);
+            window.addEventListener('resize', updatePosition);
+
+            return () => {
+                window.removeEventListener('scroll', updatePosition, true);
+                window.removeEventListener('resize', updatePosition);
+            };
+        }
+    }, [showDropdown, dropdownPosition]);
+
     // Close dropdown when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
+            // Check if click is inside the wrapper (input) OR inside the potential fixed dropdown logic
+            // But since the fixed dropdown is rendered inside the wrapper in DOM (just positioned fixed visually),
+            // wrapperRef.contains(event.target) should still work if the dropdown is a child.
+            // Wait, if I use position: fixed, it's still in the DOM tree under wrapperRef, so contains check works.
             if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
                 setShowDropdown(false);
             }
@@ -173,6 +208,7 @@ export default function SearchableSelect({
                     id={`${id}-dropdown`}
                     className={styles.dropdown}
                     role="listbox"
+                    style={dropdownPosition === 'fixed' ? fixedStyles : undefined}
                 >
                     {filteredOptions.length > 0 ? (
                         filteredOptions.map((option, index) => (
@@ -195,3 +231,4 @@ export default function SearchableSelect({
         </div>
     );
 }
+

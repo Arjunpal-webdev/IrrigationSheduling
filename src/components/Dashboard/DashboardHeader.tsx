@@ -196,6 +196,7 @@ export default function DashboardHeader({ userName = 'Farmer', onLocationChange,
                                 placeholder="Select district..."
                                 disabled={!state}
                                 required
+                                dropdownPosition="fixed"
                             />
                         </div>
                     </div>
