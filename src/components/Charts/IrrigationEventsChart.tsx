@@ -1,6 +1,14 @@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-const IrrigationEventsChart = ({ data }) => {
+interface IrrigationEventsChartProps {
+    data: {
+        date: string;
+        irrigation: number;
+    }[];
+}
+
+const IrrigationEventsChart = ({ data }: IrrigationEventsChartProps) => {
+
     return (
         <div className="card-glass">
             <h3 style={{ marginBottom: '1rem' }}>Irrigation Events Timeline</h3>

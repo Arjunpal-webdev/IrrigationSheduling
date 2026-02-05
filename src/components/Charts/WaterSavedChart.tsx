@@ -1,6 +1,15 @@
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
-const WaterSavedChart = ({ data }) => {
+interface WaterSavedChartProps {
+    data: {
+        date: string;
+        traditional: number;
+        smart: number;
+    }[];
+}
+
+const WaterSavedChart = ({ data }: WaterSavedChartProps) => {
+
     return (
         <div className="card-glass">
             <h3 style={{ marginBottom: '1rem' }}>Water Saved: Traditional vs Smart Irrigation</h3>
