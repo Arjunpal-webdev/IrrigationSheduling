@@ -11,6 +11,7 @@ interface SearchableSelectProps {
     disabled?: boolean;
     required?: boolean;
     id?: string;
+    label?: string;
 }
 
 export default function SearchableSelect({
@@ -20,7 +21,8 @@ export default function SearchableSelect({
     placeholder = 'Type to search...',
     disabled = false,
     required = false,
-    id
+    id,
+    label
 }: SearchableSelectProps) {
     const [inputValue, setInputValue] = useState(value);
     const [filteredOptions, setFilteredOptions] = useState<string[]>(options);
@@ -143,6 +145,11 @@ export default function SearchableSelect({
 
     return (
         <div className={styles.searchableSelect} ref={wrapperRef}>
+            {label && (
+                <label htmlFor={id} className={styles.label}>
+                    {label}
+                </label>
+            )}
             <input
                 ref={inputRef}
                 type="text"

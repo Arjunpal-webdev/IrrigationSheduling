@@ -613,6 +613,9 @@ export default function HomePage() {
                                 <Link href="/crop-recommendation" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
                                     Crop Recommendation
                                 </Link>
+                                <Link href="/fertilizer-recommendation" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+                                    Fertilizer Recommendation
+                                </Link>
                                 <Link href="/weather" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
                                     Weather
                                 </Link>
