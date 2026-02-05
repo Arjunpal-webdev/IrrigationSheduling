@@ -20,6 +20,7 @@ export default function Sidebar() {
         { id: 'crops', label: 'Crop Management', icon: '🌾', href: '/crops' },
         { id: 'analytics', label: 'Analytics', icon: '📈', href: '/analytics' },
         { id: 'calculator', label: 'Water Calculator', icon: '💧', href: '/calculator' },
+        { id: 'crop-recommendation', label: 'Crop Recommendation', icon: '🌱', href: '/crop-recommendation' },
         { id: 'settings', label: 'Settings', icon: '⚙️', href: '/settings' },
     ];
 
