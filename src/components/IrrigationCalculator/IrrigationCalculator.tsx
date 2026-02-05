@@ -44,6 +44,11 @@ export default function IrrigationCalculator() {
     const [soilType, setSoilType] = useState<string>('');
     const [cropCoefficient, setCropCoefficient] = useState<number>(0);
 
+    // Editable soil parameters (auto-filled, user can override)
+    const [fieldCapacity, setFieldCapacity] = useState<string>('');
+    const [permanentWiltingPoint, setPermanentWiltingPoint] = useState<string>('');
+    const [rootDepth, setRootDepth] = useState<string>('');
+
     // Results
     const [showResults, setShowResults] = useState<boolean>(false);
     const [et0, setEt0] = useState<number>(0);
@@ -82,10 +87,25 @@ export default function IrrigationCalculator() {
         if (crop && growthStage) {
             const kc = getCropCoefficient(crop, growthStage as GrowthStage);
             setCropCoefficient(kc);
+            // Auto-fill root depth
+            const depth = getCropRootDepthByStage(crop, growthStage as GrowthStage);
+            setRootDepth(depth.toFixed(2));
         } else {
             setCropCoefficient(0);
+            setRootDepth('');
         }
     }, [crop, growthStage]);
+
+    // Auto-fill Field Capacity and Permanent Wilting Point when soil type is selected
+    useEffect(() => {
+        if (soilType && soilProperties[soilType]) {
+            setFieldCapacity(soilProperties[soilType].fc.toString());
+            setPermanentWiltingPoint(soilProperties[soilType].pwp.toString());
+        } else {
+            setFieldCapacity('');
+            setPermanentWiltingPoint('');
+        }
+    }, [soilType]);
 
     const fetchWeatherData = async () => {
         if (!state || !district) return;
@@ -178,7 +198,7 @@ export default function IrrigationCalculator() {
         // STEP 5: Determine Irrigation Need using Critical Depletion Factor (p)
         // Internal logic - not shown to user
         const depletionFactor = getCriticalDepletionFactor(crop);
-        const rootDepth = getCropRootDepth(crop);
+        const rootDepthCm = getCropRootDepth(crop);
 
         // Simplified irrigation decision
         // If NIR > 0 and rainfall is low, irrigation is needed
@@ -190,23 +210,21 @@ export default function IrrigationCalculator() {
 
         // STEP 7: Calculate Irrigation Interval
         let interval = 0;
-        if (soilType && calculatedETc > 0) {
-            const soil = soilProperties[soilType];
-            if (soil) {
-                const rootDepthM = getCropRootDepthByStage(crop, growthStage as GrowthStage);
-                const fc = soil.fc;
-                const pwp = soil.pwp;
-                const p = depletionFactor;
+        if (soilType && calculatedETc > 0 && fieldCapacity && permanentWiltingPoint && rootDepth) {
+            // Use editable values if provided
+            const fc = parseFloat(fieldCapacity);
+            const pwp = parseFloat(permanentWiltingPoint);
+            const rootDepthM = parseFloat(rootDepth);
+            const p = depletionFactor;
 
-                // ASM = (FC - PWP) × RootDepth × 1000 (mm)
-                const asm = (fc - pwp) * rootDepthM * 1000 / 100; // Convert % to decimal
+            // ASM = (FC - PWP) × RootDepth × 1000 (mm)
+            const asm = (fc - pwp) * rootDepthM * 1000 / 100; // Convert % to decimal
 
-                // RAM = ASM × p (mm)
-                const ram = asm * p;
+            // RAM = ASM × p (mm)
+            const ram = asm * p;
 
-                // Irrigation Interval = RAM / ETc (days)
-                interval = ram / calculatedETc;
-            }
+            // Irrigation Interval = RAM / ETc (days)
+            interval = ram / calculatedETc;
         }
 
         // Update state with results
@@ -532,6 +550,88 @@ export default function IrrigationCalculator() {
                                 <span style={{ marginLeft: '1rem', fontSize: '0.75rem' }}>
                                     (Auto-assigned based on FAO-56 standards)
                                 </span>
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Calculated Soil & Root Parameters */}
+                    {(fieldCapacity || permanentWiltingPoint || rootDepth) && (
+                        <div style={{
+                            padding: '1.25rem',
+                            backgroundColor: '#FFF7ED',
+                            border: '1px solid #FDBA74',
+                            borderRadius: 'var(--radius-md)',
+                            marginTop: '1rem'
+                        }}>
+                            <h4 style={{
+                                margin: 0,
+                                marginBottom: '0.75rem',
+                                fontSize: '0.95rem',
+                                color: '#9A3412'
+                            }}>
+                                📦 Calculated Soil & Root Parameters
+                            </h4>
+
+                            <div className={styles.formRow}>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="fieldCapacityInput" className={styles.formLabel}>
+                                        <span className={styles.labelIcon}>💧</span>
+                                        Field Capacity (%)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="fieldCapacityInput"
+                                        className={styles.formInput}
+                                        step="0.1"
+                                        min="0"
+                                        max="100"
+                                        value={fieldCapacity}
+                                        onChange={(e) => setFieldCapacity(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="pwpInput" className={styles.formLabel}>
+                                        <span className={styles.labelIcon}>🌵</span>
+                                        Permanent Wilting Point (%)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="pwpInput"
+                                        className={styles.formInput}
+                                        step="0.1"
+                                        min="0"
+                                        max="100"
+                                        value={permanentWiltingPoint}
+                                        onChange={(e) => setPermanentWiltingPoint(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="rootDepthInput" className={styles.formLabel}>
+                                        <span className={styles.labelIcon}>🌱</span>
+                                        Root Depth (m)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="rootDepthInput"
+                                        className={styles.formInput}
+                                        step="0.01"
+                                        min="0"
+                                        max="5"
+                                        value={rootDepth}
+                                        onChange={(e) => setRootDepth(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <p style={{
+                                fontSize: '0.75rem',
+                                color: '#92400E',
+                                margin: '0.75rem 0 0 0',
+                                fontStyle: 'italic'
+                            }}>
+                                ℹ️ Default values are based on standard agricultural data. You can adjust if field conditions differ.
                             </p>
                         </div>
                     )}
