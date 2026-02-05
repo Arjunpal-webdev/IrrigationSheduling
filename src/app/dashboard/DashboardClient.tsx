@@ -23,7 +23,7 @@ const KrishiSahayak = dynamic(() => import('@/components/Chat/KrishiSahayak'), {
 });
 
 export default function DashboardClient() {
-    const { state, district } = useLocation();
+    const { state, district, lat, lon } = useLocation();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [showFieldModal, setShowFieldModal] = useState(false);
     const [fields, setFields] = useState<any[]>([]);
@@ -44,6 +44,11 @@ export default function DashboardClient() {
         cropCoefficient: '0.85'
     });
 
+    // Simulation data state
+    const [simulationData, setSimulationData] = useState<any>(null);
+    const [stressAnalysis, setStressAnalysis] = useState<any>(null);
+    const [irrigationRec, setIrrigationRec] = useState<any>(null);
+
     const cropList = [
         { id: 1, name: 'Wheat', icon: '🌾', growthStage: 'Development (45 days)', area: '2.5 hectares', plantingDate: 'Dec 12, 2025', expectedHarvest: 'Apr 15, 2026', cropCoefficient: '0.85' },
         { id: 2, name: 'Rice', icon: '🌾', growthStage: 'Initial (20 days)', area: '3.0 hectares', plantingDate: 'Jan 5, 2026', expectedHarvest: 'May 10, 2026', cropCoefficient: '0.90' },
@@ -56,6 +61,58 @@ export default function DashboardClient() {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
+
+    // Fetch simulation data
+    useEffect(() => {
+        if (lat && lon) {
+            fetchSimulationData();
+        }
+    }, [lat, lon, selectedCrop]);
+
+    const fetchSimulationData = async () => {
+        try {
+            const cropName = selectedCrop.name.toLowerCase();
+            const stage = 'development'; // Map from growth stage
+            const response = await fetch(
+                `/api/simulation?lat=${lat}&lon=${lon}&crop=${cropName}&currentMoisture=42&stage=${stage}&soilType=loamy`
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                setSimulationData(data);
+                setStressAnalysis(data.stressAnalysis);
+                setIrrigationRec(data.irrigationRecommendation);
+            }
+        } catch (error) {
+            console.error('Simulation fetch failed, using fallback', error);
+            // Keep existing hardcoded values as fallback
+        }
+    };
+
+    // Helper functions for simulation data
+    const getStressColor = (status?: string) => {
+        if (!status) return '#10B981';
+        if (status === 'optimal') return '#10B981';
+        if (status === 'mild_stress') return '#FBBF24';
+        if (status === 'moderate_stress') return '#F97316';
+        return '#EF4444';
+    };
+
+    const getUrgencyColor = (urgency?: string) => {
+        if (!urgency || urgency === 'none') return '#10B981';
+        if (urgency === 'low') return '#FBBF24';
+        if (urgency === 'medium') return '#F97316';
+        return '#EF4444';
+    };
+
+    const getTrendFromPredictions = (predictions?: any[]) => {
+        if (!predictions || predictions.length < 2) return 'stable';
+        const current = predictions[0].moisture;
+        const tomorrow = predictions[1].moisture;
+        if (tomorrow > current + 1) return 'up' as const;
+        if (tomorrow < current - 1) return 'down' as const;
+        return 'stable' as const;
+    };
 
     // Export Report Handler
     const handleExportReport = () => {
@@ -192,10 +249,42 @@ export default function DashboardClient() {
                     {/* Quick Stats Cards */}
                     <div className={styles.statsGrid}>
                         {[
-                            { icon: '💧', label: 'Soil Moisture', value: '42%', status: 'Optimal', color: '#10B981' },
-                            { icon: '🌾', label: 'Crop Health', value: '88/100', status: 'Good', color: '#10B981' },
-                            { icon: '💡', label: 'Water Saved', value: '2,450L', status: 'This week', color: '#3B82F6' },
-                            { icon: '🚿', label: 'Next Irrigation', value: '6hrs', status: 'AI Scheduled', color: '#FBBF24' }
+                            {
+                                icon: '💧',
+                                label: 'Soil Moisture',
+                                value: simulationData?.predicted[0]?.moisture
+                                    ? `${simulationData.predicted[0].moisture.toFixed(1)}%`
+                                    : '42%',
+                                status: stressAnalysis?.status?.replace('_', ' ') || 'Optimal',
+                                color: getStressColor(stressAnalysis?.status)
+                            },
+                            {
+                                icon: '🌾',
+                                label: 'Crop Health',
+                                value: stressAnalysis?.stressIndex
+                                    ? `${Math.round(stressAnalysis.stressIndex * 100)}/100`
+                                    : '88/100',
+                                status: stressAnalysis?.status === 'optimal' ? 'Good' : 'Monitor',
+                                color: getStressColor(stressAnalysis?.status)
+                            },
+                            {
+                                icon: '💡',
+                                label: 'Water Saved',
+                                value: '2,450L',
+                                status: 'This week',
+                                color: '#3B82F6'
+                            },
+                            {
+                                icon: '🚿',
+                                label: 'Next Irrigation',
+                                value: irrigationRec?.isNeeded
+                                    ? irrigationRec.daysUntilStress === 0
+                                        ? 'Today'
+                                        : `${irrigationRec.daysUntilStress}d`
+                                    : 'Not needed',
+                                status: irrigationRec?.urgency || 'Scheduled',
+                                color: getUrgencyColor(irrigationRec?.urgency)
+                            }
                         ].map((stat, i) => (
                             <div key={i} className={styles.statCard} style={{ '--accent-color': stat.color } as any}>
                                 <div className={styles.statIcon}>{stat.icon}</div>
@@ -211,10 +300,12 @@ export default function DashboardClient() {
                         {/* Soil Moisture Widget */}
                         <div className={styles.gridItem} style={{ gridColumn: 'span 4' }}>
                             <SoilMoistureWidget
-                                currentMoisture={42}
-                                fieldCapacity={70}
-                                wiltingPoint={20}
-                                trend="down"
+                                currentMoisture={simulationData?.predicted[0]?.moisture || 42}
+                                fieldCapacity={simulationData?.fieldParameters?.fieldCapacity || 70}
+                                wiltingPoint={simulationData?.fieldParameters?.wiltingPoint || 20}
+                                trend={getTrendFromPredictions(simulationData?.predicted)}
+                                predictions={simulationData?.predicted}
+                                stressAnalysis={stressAnalysis}
                             />
                         </div>
 
@@ -269,6 +360,36 @@ export default function DashboardClient() {
                             ))}
                         </div>
                     </div>
+
+                    {/* Crop Stress Indicator */}
+                    {stressAnalysis && (
+                        <div className="card" style={{
+                            padding: '1rem',
+                            background: getStressColor(stressAnalysis.status),
+                            color: 'white',
+                            marginBottom: '1rem',
+                            borderRadius: '12px'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ fontSize: '2rem' }}>
+                                    {stressAnalysis.status === 'optimal' ? '✅' : '⚠️'}
+                                </div>
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.25rem' }}>
+                                        Crop Water Stress: {stressAnalysis.status.replace('_', ' ').toUpperCase()}
+                                    </div>
+                                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                                        {stressAnalysis.description}
+                                    </div>
+                                    {irrigationRec?.isNeeded && (
+                                        <div style={{ fontSize: '0.875rem', marginTop: '0.5rem', opacity: 0.95 }}>
+                                            💡 Irrigation scheduled only when predicted moisture crosses stress threshold.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Footer */}
                     <div className={styles.footer}>

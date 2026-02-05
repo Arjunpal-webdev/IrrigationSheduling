@@ -138,3 +138,54 @@ export interface DashboardStats {
     cropHealthScore: number; // 0-100
     activeAlerts: number;
 }
+
+// ============================================
+// Simulation & Prediction Types (NEW)
+// ============================================
+
+export interface SoilMoisturePrediction {
+    date: string;
+    moisture: number;  // %
+    et: number;       // mm
+    rainfall: number; // mm
+    isHistorical: boolean;
+    hasIrrigation?: boolean;
+}
+
+export interface WaterStressAnalysis {
+    stressIndex: number;  // 0-1 scale
+    status: 'optimal' | 'mild_stress' | 'moderate_stress' | 'severe_stress' | 'critical';
+    description: string;
+    predictedTrend?: {
+        date: string;
+        index: number;
+        status: string;
+    }[];
+    criticalDate?: string;
+}
+
+export interface AdaptiveIrrigationSchedule {
+    isNeeded: boolean;
+    scheduledDate: string | null;
+    amount: number;  // mm
+    amountLiters?: number;
+    reason: string;
+    urgency: 'none' | 'low' | 'medium' | 'high' | 'critical';
+    daysUntilStress: number | null;
+    confidence: number;
+}
+
+export interface SimulationResponse {
+    historical?: SoilMoisturePrediction[];
+    predicted: SoilMoisturePrediction[];
+    stressAnalysis: WaterStressAnalysis;
+    irrigationRecommendation: AdaptiveIrrigationSchedule;
+    summary: {
+        avgMoisture: number;
+        minMoisture: number;
+        maxMoisture: number;
+        totalET: number;
+        totalRainfall: number;
+    };
+}
+

@@ -2,22 +2,57 @@
 
 import { useEffect, useState } from 'react';
 import { IrrigationEvent } from '@/types';
+import { useLocation } from '@/contexts/LocationContext';
 
 export default function IrrigationSchedule() {
+    const { lat, lon } = useLocation();
     const [schedule, setSchedule] = useState<IrrigationEvent[]>([]);
     const [loading, setLoading] = useState(true);
+    const [calculatedInterval, setCalculatedInterval] = useState<string | null>(null);
 
     useEffect(() => {
         fetchSchedule();
-    }, []);
+        // Read calculated interval from Water Calculator
+        const savedInterval = localStorage.getItem('calculatedIrrigationInterval');
+        setCalculatedInterval(savedInterval);
+    }, [lat, lon]);
 
     const fetchSchedule = async () => {
         try {
+            // Try simulation-based schedule first
+            if (lat && lon) {
+                const simResponse = await fetch(
+                    `/api/irrigation-schedule?lat=${lat}&lon=${lon}&crop=wheat&currentMoisture=42`
+                );
+
+                if (simResponse.ok) {
+                    const recommendation = await simResponse.json();
+
+                    if (recommendation.isNeeded) {
+                        // Convert recommendation to IrrigationEvent format
+                        const event: IrrigationEvent = {
+                            id: 'sim-1',
+                            scheduledTime: new Date(recommendation.scheduledDate),
+                            amount: recommendation.amount,
+                            status: 'scheduled',
+                            method: 'Adaptive Irrigation',
+                            aiRecommended: true,
+                            confidenceScore: recommendation.confidence
+                        };
+                        setSchedule([event]);
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
+
+            // Fallback to existing API
             const response = await fetch('/api/irrigation');
             const data = await response.json();
             setSchedule(data.schedule);
         } catch (error) {
             console.error('Schedule fetch error:', error);
+            // Keep empty schedule or use fallback
         } finally {
             setLoading(false);
         }
@@ -198,6 +233,41 @@ export default function IrrigationSchedule() {
                     </div>
                 </div>
             </div>
+
+            {/* Simulation Info */}
+            <div style={{
+                marginTop: '1rem',
+                padding: '0.75rem',
+                background: 'rgba(59, 130, 246, 0.05)',
+                borderRadius: '8px',
+                fontSize: '0.875rem'
+            }}>
+                <div style={{ opacity: 0.8 }}>
+                    💡 Irrigation scheduled only when predicted moisture crosses stress threshold based on 7-day weather forecast.
+                </div>
+            </div>
+
+            {/* Calculated Irrigation Interval */}
+            {calculatedInterval && (
+                <div style={{
+                    marginTop: '1rem',
+                    padding: '1rem',
+                    background: 'rgba(139, 92, 246, 0.05)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(139, 92, 246, 0.2)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '1.25rem' }}>⏱️</span>
+                        <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Calculated Irrigation Interval</div>
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                        Every {calculatedInterval} days
+                    </div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.25rem' }}>
+                        Based on FAO-56 soil water balance from Water Calculator
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

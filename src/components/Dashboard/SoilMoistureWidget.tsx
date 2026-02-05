@@ -7,13 +7,17 @@ interface SoilMoistureWidgetProps {
     fieldCapacity: number;
     wiltingPoint: number;
     trend?: 'up' | 'down' | 'stable';
+    predictions?: any[];  // 7-day forecast
+    stressAnalysis?: any;  // Stress data
 }
 
 export default function SoilMoistureWidget({
     currentMoisture,
     fieldCapacity = 70,
     wiltingPoint = 20,
-    trend = 'stable'
+    trend = 'stable',
+    predictions,
+    stressAnalysis
 }: SoilMoistureWidgetProps) {
     const getTrendEmoji = () => {
         if (trend === 'up') return '📈';
@@ -37,6 +41,13 @@ export default function SoilMoistureWidget({
 
     const percentage = ((currentMoisture - wiltingPoint) / (fieldCapacity - wiltingPoint)) * 100;
     const clampedPercentage = Math.max(0, Math.min(100, percentage));
+
+    const getStressRGB = (status: string) => {
+        if (status === 'optimal') return '16, 185, 129';
+        if (status === 'mild_stress') return '251, 191, 36';
+        if (status === 'moderate_stress') return '249, 115, 22';
+        return '239, 68, 68';
+    };
 
     return (
         <div className="card-glass">
@@ -176,6 +187,62 @@ export default function SoilMoistureWidget({
                     <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>Field Cap.</div>
                 </div>
             </div>
+
+            {/* 7-Day Forecast */}
+            {predictions && predictions.length > 1 && (
+                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #E5E7EB' }}>
+                    <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', opacity: 0.8 }}>
+                        7-Day Moisture Forecast
+                    </h4>
+                    <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto' }}>
+                        {predictions.slice(0, 7).map((pred, i) => (
+                            <div key={i} style={{
+                                flex: '1 0 auto',
+                                minWidth: '60px',
+                                textAlign: 'center',
+                                padding: '0.5rem',
+                                background: i === 0 ? 'rgba(16, 185, 129, 0.1)' : '#F9FAFB',
+                                borderRadius: '8px',
+                                fontSize: '0.75rem'
+                            }}>
+                                <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                                    {i === 0 ? 'Today' : `+${i}d`}
+                                </div>
+                                <div style={{
+                                    fontSize: '1.1rem',
+                                    fontWeight: 700,
+                                    color: pred.moisture < 25 ? '#EF4444' : '#10B981'
+                                }}>
+                                    {pred.moisture.toFixed(0)}%
+                                </div>
+                                {pred.rainfall > 0 && (
+                                    <div style={{ fontSize: '0.7rem', opacity: 0.7 }}>
+                                        🌧️ {pred.rainfall}mm
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Stress Index Indicator */}
+            {stressAnalysis && (
+                <div style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem',
+                    background: `rgba(${getStressRGB(stressAnalysis.status)}, 0.1)`,
+                    borderRadius: '8px',
+                    fontSize: '0.875rem'
+                }}>
+                    <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                        Stress Index: {(stressAnalysis.stressIndex * 100).toFixed(0)}/100
+                    </div>
+                    <div style={{ opacity: 0.8 }}>
+                        {stressAnalysis.description}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

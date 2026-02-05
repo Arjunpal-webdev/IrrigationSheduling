@@ -10,6 +10,7 @@ import {
     getCropCoefficient,
     getCriticalDepletionFactor,
     getCropRootDepth,
+    getCropRootDepthByStage,
     getAvailableCrops,
     getCropDisplayName
 } from '@/lib/cropwat/cropCoefficients';
@@ -40,6 +41,7 @@ export default function IrrigationCalculator() {
     const [crop, setCrop] = useState<string>('');
     const [growthStage, setGrowthStage] = useState<GrowthStage | ''>('');
     const [area, setArea] = useState<string>('');
+    const [soilType, setSoilType] = useState<string>('');
     const [cropCoefficient, setCropCoefficient] = useState<number>(0);
 
     // Results
@@ -50,6 +52,19 @@ export default function IrrigationCalculator() {
     const [netIrrigationReq, setNetIrrigationReq] = useState<number>(0);
     const [irrigationNeeded, setIrrigationNeeded] = useState<boolean>(false);
     const [weeklyWaterVolume, setWeeklyWaterVolume] = useState<number>(0);
+    const [irrigationInterval, setIrrigationInterval] = useState<number>(0);
+
+    // Soil properties (FC and PWP in %)
+    const soilProperties: Record<string, { fc: number; pwp: number }> = {
+        sand: { fc: 12, pwp: 5 },
+        loamySand: { fc: 15, pwp: 7 },
+        sandyLoam: { fc: 22, pwp: 10 },
+        loam: { fc: 28, pwp: 14 },
+        siltLoam: { fc: 33, pwp: 17 },
+        clayLoam: { fc: 35, pwp: 18 },
+        sandyClay: { fc: 38, pwp: 22 },
+        clay: { fc: 45, pwp: 28 }
+    };
 
     const availableStates = getAvailableStates();
     const availableCrops = getAvailableCrops();
@@ -109,7 +124,7 @@ export default function IrrigationCalculator() {
         e.preventDefault();
 
         // Validate all required inputs
-        if (!state || !district || !crop || !growthStage || !area) {
+        if (!state || !district || !crop || !growthStage || !area || !soilType) {
             alert('Please fill in all required fields');
             return;
         }
@@ -173,6 +188,27 @@ export default function IrrigationCalculator() {
         const dailyVolumeM3 = (nir * areaNum * 10000) / 1000; // mm * m² / 1000 = m³
         const weeklyVolume = dailyVolumeM3 * 7; // Weekly total
 
+        // STEP 7: Calculate Irrigation Interval
+        let interval = 0;
+        if (soilType && calculatedETc > 0) {
+            const soil = soilProperties[soilType];
+            if (soil) {
+                const rootDepthM = getCropRootDepthByStage(crop, growthStage as GrowthStage);
+                const fc = soil.fc;
+                const pwp = soil.pwp;
+                const p = depletionFactor;
+
+                // ASM = (FC - PWP) × RootDepth × 1000 (mm)
+                const asm = (fc - pwp) * rootDepthM * 1000 / 100; // Convert % to decimal
+
+                // RAM = ASM × p (mm)
+                const ram = asm * p;
+
+                // Irrigation Interval = RAM / ETc (days)
+                interval = ram / calculatedETc;
+            }
+        }
+
         // Update state with results
         setEt0(calculatedET0);
         setEtc(calculatedETc);
@@ -180,7 +216,14 @@ export default function IrrigationCalculator() {
         setNetIrrigationReq(nir);
         setIrrigationNeeded(needsIrrigation);
         setWeeklyWaterVolume(weeklyVolume);
+        setIrrigationInterval(interval);
         setShowResults(true);
+
+        // Save irrigation interval to localStorage for Dashboard integration
+        if (interval > 0) {
+            localStorage.setItem('calculatedIrrigationInterval', interval.toFixed(1));
+            localStorage.setItem('calculationTimestamp', new Date().toISOString());
+        }
 
         // Scroll to results
         setTimeout(() => {
@@ -451,6 +494,32 @@ export default function IrrigationCalculator() {
                         </div>
                     </div>
 
+                    <div className={styles.formRow}>
+                        <div className={styles.formGroup}>
+                            <label htmlFor="soilTypeSelect" className={styles.formLabel}>
+                                <span className={styles.labelIcon}>🏜️</span>
+                                Soil Type *
+                            </label>
+                            <select
+                                id="soilTypeSelect"
+                                className={styles.formInput}
+                                value={soilType}
+                                onChange={(e) => setSoilType(e.target.value)}
+                                required
+                            >
+                                <option value="">Select soil type...</option>
+                                <option value="sand">Sand</option>
+                                <option value="loamySand">Loamy Sand</option>
+                                <option value="sandyLoam">Sandy Loam</option>
+                                <option value="loam">Loam</option>
+                                <option value="siltLoam">Silt Loam</option>
+                                <option value="clayLoam">Clay Loam</option>
+                                <option value="sandyClay">Sandy Clay</option>
+                                <option value="clay">Clay</option>
+                            </select>
+                        </div>
+                    </div>
+
                     {cropCoefficient > 0 && (
                         <div style={{
                             padding: '1rem',
@@ -498,10 +567,21 @@ export default function IrrigationCalculator() {
                         <div className={styles.resultCard}>
                             <div className={styles.resultIcon}>🌾</div>
                             <div className={styles.resultContent}>
-                                <p className={styles.resultLabel}>Crop Water Requirement (ETc)</p>
+                                <p className={styles.resultLabel}>Crop Evapotranspiration (ETc)</p>
                                 <p className={styles.resultValue}>{etc.toFixed(2)} mm/day</p>
                                 <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
                                     ETc = ET₀ × Kc ({cropCoefficient.toFixed(2)})
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className={styles.resultCard}>
+                            <div className={styles.resultIcon}>💦</div>
+                            <div className={styles.resultContent}>
+                                <p className={styles.resultLabel}>Crop Water Requirement (CWR)</p>
+                                <p className={styles.resultValue}>{(etc * parseFloat(area) * 10).toFixed(2)} liters/day</p>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                                    CWR = ETc × A × 10
                                 </p>
                             </div>
                         </div>
@@ -528,6 +608,26 @@ export default function IrrigationCalculator() {
                             </div>
                         </div>
                     </div>
+
+                    {irrigationInterval > 0 && (
+                        <div style={{
+                            padding: '1.5rem',
+                            backgroundColor: 'var(--color-surface-elevated)',
+                            borderRadius: 'var(--radius-lg)',
+                            marginTop: '1rem',
+                            textAlign: 'center'
+                        }}>
+                            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: 'var(--color-primary)' }}>
+                                ⏱️ Irrigation Interval
+                            </h3>
+                            <p style={{ fontSize: '1.75rem', fontWeight: 600, color: 'var(--color-text)' }}>
+                                Irrigation required every {irrigationInterval.toFixed(1)} days
+                            </p>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
+                                Based on soil water balance and crop depletion factor
+                            </p>
+                        </div>
+                    )}
 
                     {/* Irrigation Recommendation */}
                     <div style={{
