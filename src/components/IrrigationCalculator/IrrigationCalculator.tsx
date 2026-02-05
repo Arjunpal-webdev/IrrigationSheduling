@@ -579,7 +579,7 @@ export default function IrrigationCalculator() {
                             <div className={styles.resultIcon}>💦</div>
                             <div className={styles.resultContent}>
                                 <p className={styles.resultLabel}>Crop Water Requirement (CWR)</p>
-                                <p className={styles.resultValue}>{(etc * parseFloat(area) * 10).toFixed(2)} liters/day</p>
+                                <p className={styles.resultValue}>{(etc * parseFloat(area) * 10 / 1000).toFixed(2)} m³/day</p>
                                 <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
                                     CWR = ETc × A × 10
                                 </p>
