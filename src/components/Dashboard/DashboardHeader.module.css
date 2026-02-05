@@ -9,6 +9,7 @@
     z-index: 100;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     transition: left var(--transition-base);
+    overflow: visible;
 }
 
 .headerContent {
@@ -17,13 +18,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    overflow: visible;
 }
 
 .headerLeft {
     display: flex;
     align-items: center;
     gap: 1rem;
+    overflow: visible;
 }
+
 
 .menuBtn {
     display: none;

@@ -54,7 +54,7 @@
     border: 2px solid var(--color-primary, #10b981);
     border-radius: 8px;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
+    z-index: 2000;
     animation: dropdownSlideIn 0.15s ease-out;
 }
 
