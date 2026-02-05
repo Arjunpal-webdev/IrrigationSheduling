@@ -157,7 +157,7 @@ export default function KrishiSahayak() {
                     e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
                 }}
             >
-                <span style={{ fontSize: '2rem' }}>🌾</span>
+                <img src="/assets/icons/chatbot-icon.png" alt="Krishi Sahayak" style={{ width: '40px', height: '40px' }} />
             </div>
         );
     }

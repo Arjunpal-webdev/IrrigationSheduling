@@ -250,7 +250,7 @@ export default function DashboardClient() {
                     <div className={styles.statsGrid}>
                         {[
                             {
-                                icon: '💧',
+                                icon: <img src="/assets/icons/soil-moisture.png" alt="" style={{ width: '48px', height: '48px' }} />,
                                 label: 'Soil Moisture',
                                 value: simulationData?.predicted[0]?.moisture
                                     ? `${simulationData.predicted[0].moisture.toFixed(1)}%`
@@ -259,7 +259,7 @@ export default function DashboardClient() {
                                 color: getStressColor(stressAnalysis?.status)
                             },
                             {
-                                icon: '🌾',
+                                icon: <img src="/assets/icons/crop-health.png" alt="" style={{ width: '48px', height: '48px' }} />,
                                 label: 'Crop Health',
                                 value: stressAnalysis?.stressIndex
                                     ? `${Math.round(stressAnalysis.stressIndex * 100)}/100`
@@ -268,14 +268,14 @@ export default function DashboardClient() {
                                 color: getStressColor(stressAnalysis?.status)
                             },
                             {
-                                icon: '💡',
+                                icon: <img src="/assets/icons/water-saved.png" alt="" style={{ width: '48px', height: '48px' }} />,
                                 label: 'Water Saved',
                                 value: '2,450L',
                                 status: 'This week',
                                 color: '#3B82F6'
                             },
                             {
-                                icon: '🚿',
+                                icon: <img src="/assets/icons/irrigation-scheduled.png" alt="" style={{ width: '48px', height: '48px' }} />,
                                 label: 'Next Irrigation',
                                 value: irrigationRec?.isNeeded
                                     ? irrigationRec.daysUntilStress === 0

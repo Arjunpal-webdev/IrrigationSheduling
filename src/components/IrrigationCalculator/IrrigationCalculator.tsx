@@ -254,12 +254,12 @@ export default function IrrigationCalculator() {
 
     return (
         <div className={styles.calculatorContainer}>
-            <Link href="/" className={styles.backButton}>
-                ← Back to Home
+            <Link href="/dashboard" className={styles.backButton}>
+                ← Back to Dashboard
             </Link>
 
             <header className={styles.header}>
-                <div className={styles.headerIcon}>💧</div>
+                <div className={styles.headerIcon}><img src="/assets/icons/water-calculator.png" alt="" style={{ width: '64px', height: '64px' }} /></div>
                 <h1>FAO-Based Irrigation Calculator</h1>
                 <p className={styles.subtitle}>
                     Scientific water requirement calculation using FAO-56 methodology

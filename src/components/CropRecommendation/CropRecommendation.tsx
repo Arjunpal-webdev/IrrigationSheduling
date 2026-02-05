@@ -149,8 +149,8 @@ export default function CropRecommendation() {
 
     return (
         <div className={styles.calculatorContainer}>
-            <Link href="/" className={styles.backButton}>
-                ← Back to Home
+            <Link href="/dashboard" className={styles.backButton}>
+                ← Back to Dashboard
             </Link>
 
             <header className={styles.header}>

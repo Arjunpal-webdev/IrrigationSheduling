@@ -352,9 +352,9 @@ export default function HomePage() {
                         gap: '1.5rem'
                     }}>
                         {[
-                            { icon: '💧', label: 'Soil Moisture', value: '42%', status: 'Optimal', color: '#10B981' },
-                            { icon: '🌾', label: 'Crop Health', value: '88/100', status: 'Good Condition', color: '#10B981' },
-                            { icon: '🚿', label: 'Next Irrigation', value: '6 hours', status: 'AI Scheduled', color: '#FBBF24' },
+                            { icon: <img src="/assets/icons/soil-moisture.png" alt="" style={{ width: '64px', height: '64px' }} />, label: 'Soil Moisture', value: '42%', status: 'Optimal', color: '#10B981' },
+                            { icon: <img src="/assets/icons/crop-health.png" alt="" style={{ width: '64px', height: '64px' }} />, label: 'Crop Health', value: '88/100', status: 'Good Condition', color: '#10B981' },
+                            { icon: <img src="/assets/icons/irrigation-scheduled.png" alt="" style={{ width: '64px', height: '64px' }} />, label: 'Next Irrigation', value: '6 hours', status: 'AI Scheduled', color: '#FBBF24' },
                             { icon: '🌤️', label: 'Weather', value: '28°C', status: 'Sunny', color: '#3B82F6' }
                         ].map((stat, i) => (
                             <div key={i} className="card" style={{
@@ -363,7 +363,7 @@ export default function HomePage() {
                                 borderTop: `4px solid ${stat.color}`,
                                 transition: 'all 0.3s ease'
                             }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{stat.icon}</div>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{stat.icon}</div>
                                 <div style={{
                                     fontSize: '2rem',
                                     fontWeight: 800,
@@ -403,7 +403,7 @@ export default function HomePage() {
                     }}>
                         {[
                             {
-                                icon: '💡',
+                                icon: <img src="/assets/icons/water-saved.png" alt="" style={{ width: '72px', height: '72px' }} />,
                                 title: 'Save Water Automatically',
                                 description: 'AI detects exact water needs and irrigates only when required. Save up to 40% water.'
                             },
@@ -413,13 +413,13 @@ export default function HomePage() {
                                 description: 'Receive SMS and email alerts when your crops need water or face threats.'
                             },
                             {
-                                icon: '📈',
+                                icon: <img src="/assets/icons/analytics-icon.png" alt="" style={{ width: '72px', height: '72px' }} />,
                                 title: 'Increase Yield with Data',
                                 description: 'Make informed decisions based on real-time soil, weather, and crop health data.'
                             }
                         ].map((benefit, i) => (
                             <div key={i} className="card" style={{ textAlign: 'center', padding: '2rem' }}>
-                                <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>{benefit.icon}</div>
+                                <div style={{ fontSize: '3.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{benefit.icon}</div>
                                 <h3 style={{
                                     color: 'var(--color-primary)',
                                     marginBottom: '1rem',
@@ -470,7 +470,7 @@ export default function HomePage() {
                             },
                             {
                                 step: '3',
-                                icon: '🚿',
+                                icon: <img src="/assets/icons/irrigation-scheduled.png" alt="" style={{ width: '64px', height: '64px' }} />,
                                 title: 'Smart Irrigation',
                                 description: 'Automated scheduling or instant alerts guide your irrigation decisions'
                             }
@@ -492,7 +492,7 @@ export default function HomePage() {
                                 }}>
                                     {step.step}
                                 </div>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{step.icon}</div>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{step.icon}</div>
                                 <h3 style={{
                                     fontSize: '1.2rem',
                                     fontWeight: 600,

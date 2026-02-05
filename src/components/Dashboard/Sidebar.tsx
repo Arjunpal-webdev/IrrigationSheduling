@@ -14,12 +14,12 @@ export default function Sidebar() {
     }, [pathname]);
 
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: '📊', href: '/dashboard' },
+        { id: 'dashboard', label: 'Dashboard', icon: '/assets/icons/dashboard-icon.png', href: '/dashboard' },
         { id: 'weather', label: 'Weather', icon: '🌤️', href: '/weather' },
         { id: 'alerts', label: 'Alerts', icon: '🔔', href: '/alerts' },
-        { id: 'crops', label: 'Crop Management', icon: '🌾', href: '/crops' },
-        { id: 'analytics', label: 'Analytics', icon: '📈', href: '/analytics' },
-        { id: 'calculator', label: 'Water Calculator', icon: '💧', href: '/calculator' },
+        { id: 'crops', label: 'Crop Management', icon: '/assets/icons/crop-management.png', href: '/crops' },
+        { id: 'analytics', label: 'Analytics', icon: '/assets/icons/analytics-icon.png', href: '/analytics' },
+        { id: 'calculator', label: 'Water Calculator', icon: '/assets/icons/water-calculator.png', href: '/calculator' },
         { id: 'crop-recommendation', label: 'Crop Recommendation', icon: '🌱', href: '/crop-recommendation' },
         { id: 'fertilizer-recommendation', label: 'Fertilizer Recommendation', icon: '🧪', href: '/fertilizer-recommendation' },
         { id: 'settings', label: 'Settings', icon: '⚙️', href: '/settings' },
@@ -54,7 +54,13 @@ export default function Sidebar() {
                             href={item.href}
                             className={`${styles.navItem} ${isActive(item.href) ? styles.active : ''}`}
                         >
-                            <span className={styles.navIcon}>{item.icon}</span>
+                            <span className={styles.navIcon}>
+                                {item.icon.startsWith('/') ? (
+                                    <img src={item.icon} alt="" style={{ width: '24px', height: '24px' }} />
+                                ) : (
+                                    item.icon
+                                )}
+                            </span>
                             {!isCollapsed && <span className={styles.navLabel}>{item.label}</span>}
                         </Link>
                     ))}
