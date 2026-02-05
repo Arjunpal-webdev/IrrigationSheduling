@@ -179,7 +179,16 @@ export default function DashboardHeader({ userName = 'Farmer', onLocationChange,
                         </select>
 
                         {/* District Selector */}
-                        <div style={{ minWidth: '180px' }}>
+                        <div style={{
+                            minWidth: '180px',
+                            padding: '0.5rem 0.75rem',
+                            borderRadius: '8px',
+                            background: 'white',
+                            color: 'var(--color-text-primary)',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                        }}>
                             <SearchableSelect
                                 options={districtsList.map(d => d.name)}
                                 value={district}
