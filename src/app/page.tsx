@@ -9,47 +9,8 @@ import { showNavOverlay } from '@/lib/navigationOverlay';
 import useNavigationOverlay from '@/lib/useNavigationOverlay';
 import { goToDashboard } from '@/lib/goToDashboard';
 
-function ImageCarousel({ router, setShowOverlay }: { router: any; setShowOverlay: (v: boolean) => void }) {
-    const [currentSlide, setCurrentSlide] = useState(0);
+const HeroSection = ({ router, setShowOverlay }: { router: any; setShowOverlay: (v: boolean) => void }) => {
     const { data: session, status } = useSession();
-
-    const slides = [
-        {
-            image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1600&h=500&fit=crop',
-            alt: 'Smart irrigation system'
-        },
-        {
-            image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=1600&h=500&fit=crop',
-            alt: 'Healthy crops growing'
-        },
-        {
-            image: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1600&h=500&fit=crop',
-            alt: 'Water sprinklers in field'
-        },
-        {
-            image: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=1600&h=500&fit=crop',
-            alt: 'Modern farming technology'
-        }
-    ];
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % slides.length);
-        }, 4000);
-        return () => clearInterval(interval);
-    }, [slides.length]);
-
-    const goToSlide = (index: number) => {
-        setCurrentSlide(index);
-    };
-
-    const prevSlide = () => {
-        setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-    };
-
-    const nextSlide = () => {
-        setCurrentSlide((prev) => (prev + 1) % slides.length);
-    };
 
     return (
         <div style={{
@@ -59,22 +20,19 @@ function ImageCarousel({ router, setShowOverlay }: { router: any; setShowOverlay
             overflow: 'hidden',
             borderRadius: '0 0 20px 20px'
         }}>
-            {/* Images */}
-            {slides.map((slide, index) => (
-                <div
-                    key={index}
-                    style={{
-                        position: 'absolute',
-                        width: '100%',
-                        height: '100%',
-                        opacity: currentSlide === index ? 1 : 0,
-                        transition: 'opacity 1s ease-in-out',
-                        backgroundImage: `url(${slide.image})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center'
-                    }}
-                />
-            ))}
+            {/* Single Static Image */}
+            <div
+                style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    backgroundImage: `url('https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=1600&h=500&fit=crop')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                }}
+                role="img"
+                aria-label="Healthy crops growing"
+            />
 
             {/* Auth Buttons - Top Right */}
             <div style={{
@@ -221,92 +179,10 @@ function ImageCarousel({ router, setShowOverlay }: { router: any; setShowOverlay
                     Go to Dashboard →
                 </button>
             </div>
-
-            {/* Left Arrow */}
-            <button
-                onClick={prevSlide}
-                style={{
-                    position: 'absolute',
-                    left: '20px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    zIndex: 3,
-                    backgroundColor: 'rgba(255,255,255,0.3)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '50px',
-                    height: '50px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: '1.5rem',
-                    color: 'white',
-                    backdropFilter: 'blur(5px)',
-                    transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.5)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}>
-                ‹
-            </button>
-
-            {/* Right Arrow */}
-            <button
-                onClick={nextSlide}
-                style={{
-                    position: 'absolute',
-                    right: '20px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    zIndex: 3,
-                    backgroundColor: 'rgba(255,255,255,0.3)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '50px',
-                    height: '50px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: '1.5rem',
-                    color: 'white',
-                    backdropFilter: 'blur(5px)',
-                    transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.5)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}>
-                ›
-            </button>
-
-            {/* Indicator Dots */}
-            <div style={{
-                position: 'absolute',
-                bottom: '20px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: '10px',
-                zIndex: 3
-            }}>
-                {slides.map((_, index) => (
-                    <button
-                        key={index}
-                        onClick={() => goToSlide(index)}
-                        style={{
-                            width: currentSlide === index ? '32px' : '12px',
-                            height: '12px',
-                            borderRadius: '6px',
-                            border: 'none',
-                            backgroundColor: currentSlide === index ? 'white' : 'rgba(255,255,255,0.5)',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease'
-                        }}
-                    />
-                ))}
-            </div>
         </div>
     );
 }
+
 
 export default function HomePage() {
     const [isVisible, setIsVisible] = useState(false);
@@ -330,8 +206,8 @@ export default function HomePage() {
             {/* Navigation Overlay */}
             <NavigationOverlay show={showOverlay} />
 
-            {/* Image Carousel */}
-            <ImageCarousel router={router} setShowOverlay={setShowOverlay} />
+            {/* Hero Section */}
+            <HeroSection router={router} setShowOverlay={setShowOverlay} />
 
             {/* Live Farm Status Preview */}
             < section style={{ padding: '4rem 0', backgroundColor: 'var(--color-background)' }

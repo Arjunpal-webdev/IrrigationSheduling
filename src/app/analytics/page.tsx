@@ -3,9 +3,25 @@
 import Sidebar from '@/components/Dashboard/Sidebar';
 import DashboardHeader from '@/components/Dashboard/DashboardHeader';
 import MoistureChart from '@/components/Charts/MoistureChart';
+import IrrigationEventsChart from '@/components/Charts/IrrigationEventsChart';
+import WaterSavedChart from '@/components/Charts/WaterSavedChart';
 import styles from '../dashboard/dashboard.module.css';
 
 export default function AnalyticsPage() {
+    const irrigationData = [
+        { date: 'Jan 1', irrigation: 12 },
+        { date: 'Jan 8', irrigation: 18 },
+        { date: 'Jan 15', irrigation: 15 },
+        { date: 'Jan 22', irrigation: 20 },
+    ];
+
+    const waterSavedData = [
+        { date: 'Jan', traditional: 120, smart: 90 },
+        { date: 'Feb', traditional: 140, smart: 100 },
+        { date: 'Mar', traditional: 110, smart: 80 },
+        { date: 'Apr', traditional: 150, smart: 110 },
+    ];
+
     return (
         <div className={styles.dashboardLayout}>
             <Sidebar />
@@ -52,6 +68,9 @@ export default function AnalyticsPage() {
                                 ))}
                             </div>
                         </div>
+
+                        <IrrigationEventsChart data={irrigationData} />
+                        <WaterSavedChart data={waterSavedData} />
                     </div>
                 </main>
             </div>

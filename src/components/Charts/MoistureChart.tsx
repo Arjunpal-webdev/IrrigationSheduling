@@ -86,6 +86,8 @@ export default function MoistureChart() {
                             borderRadius: '8px',
                             boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                         }}
+                        formatter={(value, name) => [`${value}%`, name]}
+                        labelFormatter={(label) => `Date: ${label}`}
                     />
                     <Area
                         type="monotone"
@@ -94,6 +96,7 @@ export default function MoistureChart() {
                         strokeWidth={3}
                         fill="url(#colorActual)"
                         name="Historical"
+                        dot={{ r: 3, fill: '#10B981' }}
                     />
                     <Area
                         type="monotone"
@@ -103,6 +106,7 @@ export default function MoistureChart() {
                         strokeDasharray="5 5"
                         fill="url(#colorPredicted)"
                         name="Predicted"
+                        dot={{ r: 3, fill: '#3B82F6' }}
                     />
                 </AreaChart>
             </ResponsiveContainer>

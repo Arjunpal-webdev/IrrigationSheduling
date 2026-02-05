@@ -788,6 +788,316 @@ export default function IrrigationCalculator() {
                             <li>Effective rainfall accounts for runoff and deep percolation losses</li>
                         </ul>
                     </div>
+
+                    {/* How Our Water Simulation Works - Educational Section */}
+                    <div style={{
+                        padding: '2rem',
+                        backgroundColor: 'var(--color-surface)',
+                        border: '2px solid var(--color-primary-light)',
+                        borderRadius: 'var(--radius-lg)',
+                        marginTop: '2rem'
+                    }}>
+                        <h2 style={{
+                            fontSize: '1.75rem',
+                            marginBottom: '1.5rem',
+                            color: 'var(--color-primary)',
+                            textAlign: 'center',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.75rem'
+                        }}>
+                            <span style={{ fontSize: '2rem' }}>🪣</span>
+                            How Our Water Simulation Works
+                        </h2>
+
+                        {/* 1. Soil Moisture Model */}
+                        <div style={{
+                            padding: '1.5rem',
+                            backgroundColor: '#F0F9FF',
+                            borderRadius: 'var(--radius-md)',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <h3 style={{
+                                fontSize: '1.25rem',
+                                marginBottom: '1rem',
+                                color: '#0369A1',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <span>1️⃣</span> Soil Moisture Model: "Simple Bucket Model"
+                            </h3>
+                            <p style={{ fontSize: '0.95rem', color: '#075985', lineHeight: 1.7, marginBottom: '1rem' }}>
+                                We treat soil as a water storage bucket where water enters and exits through various processes:
+                            </p>
+                            <ul style={{ fontSize: '0.9rem', color: '#0c4a6e', paddingLeft: '1.5rem', lineHeight: 1.8 }}>
+                                <li><strong>Rainfall</strong> fills the bucket</li>
+                                <li><strong>Irrigation</strong> adds water when needed</li>
+                                <li><strong>Evapotranspiration</strong> removes water (sun + plant use)</li>
+                                <li><strong>Crop uptake</strong> removes water through roots</li>
+                                <li><strong>When bucket level drops below threshold</strong> → irrigation needed</li>
+                            </ul>
+                        </div>
+
+                        {/* 2. Formula Display */}
+                        <div style={{
+                            padding: '1.5rem',
+                            backgroundColor: '#FFF7ED',
+                            borderRadius: 'var(--radius-md)',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <h3 style={{
+                                fontSize: '1.25rem',
+                                marginBottom: '1.25rem',
+                                color: '#C2410C',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <span>2️⃣</span> Key Formulas
+                            </h3>
+
+                            {/* Soil Water Balance */}
+                            <div style={{
+                                padding: '1rem',
+                                backgroundColor: 'white',
+                                borderRadius: '8px',
+                                marginBottom: '1rem',
+                                border: '1px solid #FDBA74'
+                            }}>
+                                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#9A3412', marginBottom: '0.75rem' }}>
+                                    📊 Soil Water Balance:
+                                </p>
+                                <div style={{
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.9rem',
+                                    color: '#1e3a8a',
+                                    backgroundColor: '#F8FAFC',
+                                    padding: '1rem',
+                                    borderRadius: '6px',
+                                    lineHeight: 2,
+                                    textAlign: 'center'
+                                }}>
+                                    <div><strong>Soil Moisture Today</strong> =</div>
+                                    <div style={{ paddingLeft: '1rem' }}>Previous Soil Moisture</div>
+                                    <div style={{ paddingLeft: '1rem' }}>+ Rainfall</div>
+                                    <div style={{ paddingLeft: '1rem' }}>+ Irrigation</div>
+                                    <div style={{ paddingLeft: '1rem' }}>− Crop Evapotranspiration (ETc)</div>
+                                    <div style={{ paddingLeft: '1rem' }}>− Deep Percolation</div>
+                                </div>
+                            </div>
+
+                            {/* Crop Evapotranspiration */}
+                            <div style={{
+                                padding: '1rem',
+                                backgroundColor: 'white',
+                                borderRadius: '8px',
+                                marginBottom: '1rem',
+                                border: '1px solid #FDBA74'
+                            }}>
+                                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#9A3412', marginBottom: '0.75rem' }}>
+                                    🌾 Crop Evapotranspiration:
+                                </p>
+                                <div style={{
+                                    fontFamily: 'monospace',
+                                    fontSize: '1.1rem',
+                                    color: '#1e3a8a',
+                                    backgroundColor: '#F8FAFC',
+                                    padding: '1rem',
+                                    borderRadius: '6px',
+                                    textAlign: 'center',
+                                    fontWeight: 600
+                                }}>
+                                    ETc = ET₀ × Kc
+                                </div>
+                            </div>
+
+                            {/* Net Irrigation Requirement */}
+                            <div style={{
+                                padding: '1rem',
+                                backgroundColor: 'white',
+                                borderRadius: '8px',
+                                border: '1px solid #FDBA74'
+                            }}>
+                                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#9A3412', marginBottom: '0.75rem' }}>
+                                    💧 Net Irrigation Requirement:
+                                </p>
+                                <div style={{
+                                    fontFamily: 'monospace',
+                                    fontSize: '1.1rem',
+                                    color: '#1e3a8a',
+                                    backgroundColor: '#F8FAFC',
+                                    padding: '1rem',
+                                    borderRadius: '6px',
+                                    textAlign: 'center',
+                                    fontWeight: 600
+                                }}>
+                                    NIR = ETc − Effective Rainfall
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 3. Bucket Diagram */}
+                        <div style={{
+                            padding: '1.5rem',
+                            backgroundColor: '#F0FDF4',
+                            borderRadius: 'var(--radius-md)',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <h3 style={{
+                                fontSize: '1.25rem',
+                                marginBottom: '1.25rem',
+                                color: '#15803D',
+                                textAlign: 'center',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <span>3️⃣</span> Visual Model: The Water Bucket
+                            </h3>
+                            <div style={{
+                                fontFamily: 'monospace',
+                                fontSize: '0.95rem',
+                                color: '#14532D',
+                                backgroundColor: 'white',
+                                padding: '2rem',
+                                borderRadius: '8px',
+                                textAlign: 'center',
+                                lineHeight: 2,
+                                whiteSpace: 'pre',
+                                overflowX: 'auto',
+                                border: '2px solid #BBF7D0'
+                            }}>
+                                {`           ☁️ Rain + 🚿 Irrigation
+                  ↓
+         ┌──────────────────┐
+         │                  │
+         │   💧 Soil Water  │  ← Root Zone
+         │     (Bucket)     │     Storage
+         │                  │
+         └────────┬─────────┘
+                  ↓
+         🌿 Crop Uptake (ETc)
+                  ↓
+          💦 Deep Drainage`}
+                            </div>
+                        </div>
+
+                        {/* 4. Physics Explanation */}
+                        <div style={{
+                            padding: '1.5rem',
+                            backgroundColor: '#FEF3C7',
+                            borderRadius: 'var(--radius-md)',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <h3 style={{
+                                fontSize: '1.25rem',
+                                marginBottom: '1rem',
+                                color: '#92400E',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <span>4️⃣</span> The Physics Behind It
+                            </h3>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                gap: '1rem'
+                            }}>
+                                <div style={{
+                                    padding: '1rem',
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    border: '1px solid #FDE68A'
+                                }}>
+                                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem', textAlign: 'center' }}>🧽</div>
+                                    <p style={{ fontSize: '0.85rem', color: '#78350F', textAlign: 'center', lineHeight: 1.6 }}>
+                                        <strong>Soil acts like a sponge</strong><br />
+                                        Stores water in tiny pores between particles
+                                    </p>
+                                </div>
+                                <div style={{
+                                    padding: '1rem',
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    border: '1px solid #FDE68A'
+                                }}>
+                                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem', textAlign: 'center' }}>🌱</div>
+                                    <p style={{ fontSize: '0.85rem', color: '#78350F', textAlign: 'center', lineHeight: 1.6 }}>
+                                        <strong>Plants extract water</strong><br />
+                                        Roots absorb moisture from soil pores
+                                    </p>
+                                </div>
+                                <div style={{
+                                    padding: '1rem',
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    border: '1px solid #FDE68A'
+                                }}>
+                                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem', textAlign: 'center' }}>☀️</div>
+                                    <p style={{ fontSize: '0.85rem', color: '#78350F', textAlign: 'center', lineHeight: 1.6 }}>
+                                        <strong>Evapotranspiration</strong><br />
+                                        Sun + wind remove water via evaporation
+                                    </p>
+                                </div>
+                                <div style={{
+                                    padding: '1rem',
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    border: '1px solid #FDE68A'
+                                }}>
+                                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem', textAlign: 'center' }}>⚠️</div>
+                                    <p style={{ fontSize: '0.85rem', color: '#78350F', textAlign: 'center', lineHeight: 1.6 }}>
+                                        <strong>Stress threshold</strong><br />
+                                        When storage drops too low, stress begins
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 5. Why This Model */}
+                        <div style={{
+                            padding: '1.5rem',
+                            backgroundColor: '#EEF2FF',
+                            borderRadius: 'var(--radius-md)',
+                            border: '2px solid #C7D2FE'
+                        }}>
+                            <h3 style={{
+                                fontSize: '1.25rem',
+                                marginBottom: '1rem',
+                                color: '#4338CA',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <span>5️⃣</span> Why We Use This Model
+                            </h3>
+                            <div style={{
+                                padding: '1.25rem',
+                                backgroundColor: 'white',
+                                borderRadius: '8px',
+                                border: '1px solid #A5B4FC'
+                            }}>
+                                <p style={{ fontSize: '0.95rem', color: '#3730A3', lineHeight: 1.8, margin: 0 }}>
+                                    💡 <strong>This model is widely used in FAO irrigation planning and decision-support tools</strong> because it balances <em>accuracy with simplicity</em>. It works exceptionally well when real-time soil sensors are unavailable, making it ideal for farmers who need reliable irrigation scheduling based on readily available weather and crop data.
+                                </p>
+                            </div>
+                            <div style={{
+                                marginTop: '1rem',
+                                padding: '1rem',
+                                backgroundColor: 'white',
+                                borderRadius: '8px',
+                                fontSize: '0.85rem',
+                                color: '#4338CA',
+                                borderLeft: '4px solid #6366F1'
+                            }}>
+                                <strong>✅ Benefits:</strong> Simple to understand, scientifically validated, requires minimal input data, proven accuracy for irrigation planning
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 

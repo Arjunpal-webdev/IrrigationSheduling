@@ -243,6 +243,37 @@ export default function SoilMoistureWidget({
                     </div>
                 </div>
             )}
+
+            {/* How Irrigation Decision Works */}
+            <div style={{
+                marginTop: '1.5rem',
+                padding: '1rem',
+                borderRadius: '12px',
+                background: 'rgba(16, 185, 129, 0.1)',
+                color: '#047857',
+                fontSize: '0.875rem',
+                lineHeight: 1.5
+            }}>
+                <h4 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: '#047857' }}>
+                    How Irrigation Decision Works
+                </h4>
+                <p>Soil works like a water bucket. Moisture decreases due to evapotranspiration (ET), while rain or irrigation increases moisture.</p>
+                <ul style={{ paddingLeft: '1.5rem', margin: '0.5rem 0' }}>
+                    <li>If moisture &lt; threshold → irrigation needed</li>
+                    <li>If moisture optimal → no irrigation</li>
+                </ul>
+                <p>Formula:</p>
+                <pre style={{
+                    background: '#E5E7EB',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    overflowX: 'auto'
+                }}>
+                    SM(t) = SM(t−1) + Rain + Irrigation − ET
+                    ET = ET₀ × Kc
+                </pre>
+            </div>
         </div>
     );
 }
