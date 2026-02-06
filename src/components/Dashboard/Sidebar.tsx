@@ -19,6 +19,7 @@ export default function Sidebar() {
         { id: 'alerts', label: 'Alerts', icon: '🔔', href: '/alerts' },
         { id: 'crops', label: 'Crop Management', icon: '/assets/icons/crop-management.png', href: '/crops' },
         { id: 'analytics', label: 'Analytics', icon: '/assets/icons/analytics-icon.png', href: '/analytics' },
+        { id: 'soil-moisture', label: 'Soil Moisture Monitor', icon: '📊', href: '/soil-moisture' },
         { id: 'calculator', label: 'Water Calculator', icon: '/assets/icons/water-calculator.png', href: '/calculator' },
         { id: 'crop-recommendation', label: 'Crop Recommendation', icon: '🌱', href: '/crop-recommendation' },
         { id: 'fertilizer-recommendation', label: 'Fertilizer Recommendation', icon: '🧪', href: '/fertilizer-recommendation' },
