@@ -70,6 +70,42 @@ export default function IrrigationSchedule() {
         return 'Soon';
     };
 
+    // Manual Entry State
+    const [showManualForm, setShowManualForm] = useState(false);
+    const [manualEntry, setManualEntry] = useState({
+        date: new Date().toISOString().slice(0, 16), // datetime-local format
+        amount: '',
+        method: 'Manual',
+        note: ''
+    });
+
+    const handleManualSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!manualEntry.amount || !manualEntry.date) return;
+
+        const newEvent: IrrigationEvent = {
+            id: `manual-${Date.now()}`,
+            scheduledTime: new Date(manualEntry.date),
+            amount: parseFloat(manualEntry.amount),
+            status: 'completed', // Manual entries are usually past/done
+            method: manualEntry.method,
+            aiRecommended: false
+        };
+
+        // Add to top of list
+        setSchedule(prev => [newEvent, ...prev]);
+
+        // Reset and close
+        setManualEntry({
+            date: new Date().toISOString().slice(0, 16),
+            amount: '',
+            method: 'Manual',
+            note: ''
+        });
+        setShowManualForm(false);
+    };
+
     return (
         <div className="card-glass">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
@@ -77,13 +113,111 @@ export default function IrrigationSchedule() {
                     <h3 style={{ margin: 0, marginBottom: '0.25rem', fontSize: '1.1rem' }}>Irrigation Schedule</h3>
                     <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.7 }}>AI-optimized watering</p>
                 </div>
-                <button className="btn-primary" style={{
-                    padding: '0.5rem 1rem',
-                    fontSize: '0.875rem'
-                }}>
-                    + Add Manual
+                <button
+                    className="btn-primary"
+                    onClick={() => setShowManualForm(!showManualForm)}
+                    style={{
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.875rem'
+                    }}
+                >
+                    {showManualForm ? 'Cancel' : '+ Add Manual'}
                 </button>
             </div>
+
+            {/* Manual Entry Form */}
+            {showManualForm && (
+                <div style={{
+                    marginBottom: '1.5rem',
+                    padding: '1.25rem',
+                    background: 'var(--color-surface-elevated)',
+                    borderRadius: '12px',
+                    border: '1px solid var(--color-primary-light)',
+                    animation: 'fadeIn 0.3s ease'
+                }}>
+                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--color-primary)' }}>Add Manual Irrigation</h4>
+                    <form onSubmit={handleManualSubmit}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.25rem', opacity: 0.8 }}>Date & Time</label>
+                                <input
+                                    type="datetime-local"
+                                    required
+                                    className="form-input"
+                                    value={manualEntry.date}
+                                    onChange={e => setManualEntry({ ...manualEntry, date: e.target.value })}
+                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.25rem', opacity: 0.8 }}>Amount (mm)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    min="0.1"
+                                    step="0.1"
+                                    placeholder="e.g. 10"
+                                    value={manualEntry.amount}
+                                    onChange={e => setManualEntry({ ...manualEntry, amount: e.target.value })}
+                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.25rem', opacity: 0.8 }}>Method</label>
+                                <select
+                                    value={manualEntry.method}
+                                    onChange={e => setManualEntry({ ...manualEntry, method: e.target.value })}
+                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                                >
+                                    <option value="Manual">Manual</option>
+                                    <option value="Drip">Drip</option>
+                                    <option value="Sprinkler">Sprinkler</option>
+                                    <option value="Flood">Flood</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.25rem', opacity: 0.8 }}>Note (Optional)</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Extra watering"
+                                    value={manualEntry.note}
+                                    onChange={e => setManualEntry({ ...manualEntry, note: e.target.value })}
+                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                                />
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => setShowManualForm(false)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #E5E7EB',
+                                    background: 'white',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    background: 'var(--color-primary)',
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Save Entry
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
 
             {loading ? (
                 <div className="skeleton" style={{ height: '200px' }} />
