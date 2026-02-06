@@ -7,7 +7,7 @@ import { getAvailableCrops, getCropNutrientRequirement, type CropNutrientRequire
 import { getFertilizerRecommendation, type FertilizerResult } from '@/lib/fertilizerRecommendation/recommendationEngine';
 import { getSoilProperties } from '@/lib/cropRecommendation/soilDatabase';
 import { getAvailableStates, getDistrictsByState } from '@/lib/locationData';
-import SearchableSelect from '../SearchableSelect/SearchableSelect';
+
 
 export default function FertilizerRecommendation() {
     // Location
@@ -157,15 +157,19 @@ export default function FertilizerRecommendation() {
                                 <span className={styles.labelIcon}>📍</span>
                                 District *
                             </label>
-                            <SearchableSelect
+                            <select
                                 id="districtSelect"
-                                options={districtsList.map(d => d.name)}
+                                className={styles.formInput}
                                 value={district}
-                                onChange={setDistrict}
-                                placeholder="Type to search district..."
+                                onChange={(e) => setDistrict(e.target.value)}
                                 disabled={!state}
                                 required
-                            />
+                            >
+                                <option value="">Select District...</option>
+                                {districtsList.map(d => (
+                                    <option key={d.name} value={d.name}>{d.name}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
