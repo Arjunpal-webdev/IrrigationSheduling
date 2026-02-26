@@ -27,11 +27,13 @@ export class KrishiSahayakChatbot {
 
     /**
      * Generate response with farm context and conversation history
+     * @param ragData - Optional real farm data from PostgreSQL (NDVI, weather, etc.)
      */
     async generateResponse(
         userMessage: string,
         context: FarmContext,
-        chatHistory: GeminiMessage[] = []
+        chatHistory: GeminiMessage[] = [],
+        ragData?: string
     ): Promise<{ response: string; updatedHistory: GeminiMessage[] }> {
         console.log('📨 [Chatbot] generateResponse called');
         console.log('   User message:', userMessage);
@@ -46,8 +48,8 @@ export class KrishiSahayakChatbot {
         // Limit history to last 15 messages
         const limitedHistory = chatHistory.slice(-15);
 
-        // Build context-aware system prompt
-        const systemPrompt = this.buildSystemPrompt(context);
+        // Build context-aware system prompt (with optional RAG data)
+        const systemPrompt = this.buildSystemPrompt(context, ragData);
         console.log('   System prompt length:', systemPrompt.length);
 
         try {
@@ -162,10 +164,10 @@ export class KrishiSahayakChatbot {
     }
 
     /**
-     * Build context-aware system prompt
+     * Build context-aware system prompt with optional RAG data
      */
-    private buildSystemPrompt(context: FarmContext): string {
-        return `You are Krishi Sahayak (कृषि सहायक), an intelligent agricultural assistant for GreenGuard AI.
+    private buildSystemPrompt(context: FarmContext, ragData?: string): string {
+        let prompt = `You are Krishi Sahayak (कृषि सहायक), an intelligent agricultural assistant for GreenGuard AI.
 You specialize in irrigation management, crop health, and sustainable farming practices.
 
 CURRENT FARM CONTEXT:
@@ -174,18 +176,26 @@ CURRENT FARM CONTEXT:
 - Soil Moisture: ${context.currentSoilMoisture.toFixed(1)}%
 - Next Irrigation: ${context.nextIrrigation ? new Date(context.nextIrrigation).toLocaleString() : 'Not scheduled'}
 - Weather: ${context.weatherConditions}
-- Recent Alerts: ${context.recentAlerts.length > 0 ? context.recentAlerts.map(a => a.title).join(', ') : 'None'}
+- Recent Alerts: ${context.recentAlerts.length > 0 ? context.recentAlerts.map(a => a.title).join(', ') : 'None'}`;
 
-INSTRUCTIONS:
+        // Inject real satellite/weather data from PostgreSQL if available
+        if (ragData) {
+            prompt += `\n\nREAL-TIME SATELLITE & WEATHER DATA (from AgroMonitoring):\n${ragData}\n\nIMPORTANT: Use the REAL data above to provide specific, data-driven answers. Do NOT give generic advice — reference the actual NDVI, weather, soil moisture, and drought risk values.`;
+        }
+
+        prompt += `\n\nINSTRUCTIONS:
 1. Provide practical, actionable advice for farmers
-2. Reference the current farm context in your responses
+2. Reference the REAL farm data (NDVI, weather, soil moisture) in your responses
 3. Be concise and use simple language
 4. If discussing crop diseases, provide symptoms, causes, and remedies
 5. Promote water conservation and sustainable practices
 6. Support both English and Hindi (when user writes in Hindi, respond in Hindi)
 7. Use specific numbers from the context when relevant
+8. If real satellite data is available, prioritize it over generic knowledge
 
 Answer the following question:`;
+
+        return prompt;
     }
 
     /**

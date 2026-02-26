@@ -67,6 +67,68 @@
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Farm Switcher */
+.farmSwitcher {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg, 12px);
+    padding: 0.4rem 0.75rem;
+    border: 2px solid var(--color-primary-light, #d1fae5);
+}
+
+.farmSwitcherLabel {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.farmSelect {
+    border: none;
+    background: transparent;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-primary, #10B981);
+    cursor: pointer;
+    outline: none;
+    min-width: 140px;
+}
+
+.farmSelect:focus {
+    outline: none;
+}
+
+/* Empty State */
+.emptyState {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 50%, #A7F3D0 100%);
+    border-radius: 20px;
+    margin: 2rem 0;
+}
+
+.emptyIcon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: bounce 2s infinite;
+}
+
+.emptyState h3 {
+    font-size: 1.5rem;
+    color: #065F46;
+    margin: 0 0 0.75rem 0;
+}
+
+.emptyState p {
+    color: #6B7280;
+    max-width: 480px;
+    margin: 0 auto 1.5rem auto;
+    line-height: 1.6;
 }
 
 /* Stats Grid */

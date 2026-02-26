@@ -189,3 +189,72 @@ export interface SimulationResponse {
     };
 }
 
+// ============================================
+// Platform Upgrade Types
+// ============================================
+
+export type UserRole = 'FARMER' | 'GOVERNMENT' | 'RESEARCHER';
+
+export interface FarmRecord {
+    id: string;
+    userId: string;
+    name: string;
+    location: string;
+    polygonId?: string | null;
+    areaHa?: number | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface FarmDataRecord {
+    id: string;
+    farmId: string;
+    ndvi?: number | null;
+    weather?: Record<string, any> | null;
+    soilMoisture?: number | null;
+    droughtRisk?: number | null;
+    createdAt: string;
+}
+
+export interface InsightRecord {
+    id: string;
+    farmId: string;
+    insight: string;
+    recommendation: string;
+    riskLevel?: string | null;
+    createdAt: string;
+}
+
+export interface PolygonCoordinates {
+    lat: number;
+    lng: number;
+}
+
+export interface AgroWeatherData {
+    temp: number;
+    humidity: number;
+    pressure: number;
+    wind_speed: number;
+    clouds: number;
+    rain?: number;
+    description: string;
+}
+
+export interface AgroNDVIData {
+    dt: number;
+    source: string;
+    zoom: number;
+    dc: number;
+    cl: number;
+    data: {
+        std: number;
+        p75: number;
+        min: number;
+        max: number;
+        median: number;
+        p25: number;
+        num: number;
+        mean: number;
+    };
+}
+

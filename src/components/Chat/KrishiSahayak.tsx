@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ChatMessage, FarmContext } from '@/types';
+import { useFarm } from '@/contexts/FarmContext';
 
 export default function KrishiSahayak() {
+    const { selectedFarm } = useFarm();
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             id: '1',
@@ -22,11 +24,12 @@ export default function KrishiSahayak() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // Build farmContext from real selected farm data
     const farmContext: FarmContext = {
-        cropType: 'wheat',
+        cropType: selectedFarm?.name || 'unknown',
         growthStage: 'Development',
-        currentSoilMoisture: 42,
-        weatherConditions: 'Clear sky, 28°C',
+        currentSoilMoisture: 0,
+        weatherConditions: 'data from AgroMonitoring',
         recentAlerts: []
     };
 
@@ -45,11 +48,6 @@ export default function KrishiSahayak() {
         setInput('');
         setLoading(true);
 
-        console.log('💬 [Frontend] Sending message to chatbot:');
-        console.log('   Message:', input);
-        console.log('   SessionId:', sessionId);
-        console.log('   Context:', farmContext);
-
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
@@ -57,7 +55,8 @@ export default function KrishiSahayak() {
                 body: JSON.stringify({
                     message: input,
                     context: farmContext,
-                    sessionId // Include sessionId for conversation memory
+                    sessionId,
+                    farmId: selectedFarm?.id || null  // Pass farmId for RAG
                 })
             });
 

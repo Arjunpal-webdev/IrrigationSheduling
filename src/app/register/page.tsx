@@ -5,16 +5,23 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
+type UserRole = 'FARMER' | 'GOVERNMENT' | 'RESEARCHER';
+
+const ROLE_OPTIONS: { value: UserRole; label: string; icon: string; desc: string }[] = [
+    { value: 'FARMER', label: 'Farmer', icon: '🌾', desc: 'Manage your farms and irrigation' },
+    { value: 'GOVERNMENT', label: 'Government Officer', icon: '🏛️', desc: 'Monitor regional agriculture' },
+    { value: 'RESEARCHER', label: 'Researcher', icon: '🔬', desc: 'Analyze agricultural data' },
+];
+
 export default function RegisterPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [role, setRole] = useState<UserRole>('FARMER');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-
-    console.log('Auth UI Loaded');
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -36,7 +43,7 @@ export default function RegisterPage() {
             const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password }),
+                body: JSON.stringify({ name, email, password, role }),
             });
 
             if (response.ok) {
@@ -101,6 +108,23 @@ export default function RegisterPage() {
                             placeholder="your@email.com"
                             required
                         />
+                    </div>
+
+                    <div className="form-group">
+                        <label>I am a</label>
+                        <div className="role-selector">
+                            {ROLE_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    className={`role-option ${role === opt.value ? 'role-active' : ''}`}
+                                    onClick={() => setRole(opt.value)}
+                                >
+                                    <span className="role-icon">{opt.icon}</span>
+                                    <span className="role-label">{opt.label}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="form-group">
@@ -182,7 +206,7 @@ export default function RegisterPage() {
                     padding: var(--spacing-2xl);
                     box-shadow: var(--shadow-xl);
                     width: 100%;
-                    max-width: 440px;
+                    max-width: 480px;
                     animation: fadeIn 0.5s ease-out;
                 }
 
@@ -217,6 +241,48 @@ export default function RegisterPage() {
                     font-weight: 600;
                     color: var(--color-text-primary);
                     font-size: var(--font-size-sm);
+                }
+
+                .role-selector {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 0.5rem;
+                }
+
+                .role-option {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0.25rem;
+                    padding: 0.75rem 0.5rem;
+                    border: 2px solid var(--color-primary-light, #e0e0e0);
+                    border-radius: var(--radius-lg, 12px);
+                    background: var(--color-surface, #fff);
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    font-size: 0.75rem;
+                }
+
+                .role-option:hover {
+                    border-color: var(--color-primary, #10B981);
+                    background: rgba(16, 185, 129, 0.05);
+                }
+
+                .role-active {
+                    border-color: var(--color-primary, #10B981);
+                    background: rgba(16, 185, 129, 0.1);
+                    box-shadow: 0 0 0 1px var(--color-primary, #10B981);
+                }
+
+                .role-icon {
+                    font-size: 1.5rem;
+                }
+
+                .role-label {
+                    font-weight: 600;
+                    color: var(--color-text-primary);
+                    text-align: center;
+                    line-height: 1.2;
                 }
 
                 .error-message {
@@ -327,6 +393,15 @@ export default function RegisterPage() {
 
                     .auth-header h1 {
                         font-size: var(--font-size-2xl);
+                    }
+
+                    .role-selector {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .role-option {
+                        flex-direction: row;
+                        gap: 0.75rem;
                     }
                 }
             `}</style>

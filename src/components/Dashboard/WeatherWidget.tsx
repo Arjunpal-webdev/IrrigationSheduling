@@ -1,101 +1,126 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { WeatherForecast } from '@/types';
-import { useLocation } from '@/contexts/LocationContext';
+import { useFarm } from '@/contexts/FarmContext';
 
 export default function WeatherWidget() {
-    const { state, district, weatherCache, setWeatherCache } = useLocation();
+    const { selectedFarm } = useFarm();
 
     const [forecast, setForecast] = useState<WeatherForecast[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
-    const [currentTemp, setCurrentTemp] = useState(28);
-    const [description, setDescription] = useState('Clear sky');
-    const [humidity, setHumidity] = useState(60);
+    const [currentTemp, setCurrentTemp] = useState(0);
+    const [description, setDescription] = useState('');
+    const [humidity, setHumidity] = useState(0);
+    const [weatherSource, setWeatherSource] = useState<'agromonitoring' | 'open-meteo' | ''>('');
 
-    useEffect(() => {
-        const locationKey = `${state}-${district}`;
-
-        // Check if we have cached data for this location
-        if (weatherCache?.locationKey === locationKey && weatherCache.data) {
-            // Use cached data
-            const data = weatherCache.data;
-            if (data.forecast && data.forecast.length > 0) {
-                const today = data.forecast[0];
-                setCurrentTemp(today.tempMax);
-                setDescription(today.description);
-                setHumidity(today.humidity);
-                setForecast(data.forecast.slice(0, 7));
-            }
+    const fetchWeather = useCallback(async () => {
+        if (!selectedFarm?.id) {
             setLoading(false);
             return;
         }
 
-        // No cache or location changed - fetch new data
-        if (district) {
-            fetchWeather();
-        }
-    }, [state, district, weatherCache]);
-
-    const fetchWeather = async () => {
         setLoading(true);
         setError('');
 
         try {
-            const response = await fetch(`/api/weather?district=${encodeURIComponent(district)}`);
+            // Use unified weather route — passes farmId for AgroMonitoring priority
+            const params = new URLSearchParams();
+            params.set('farmId', selectedFarm.id);
+            // Also pass farm location as fallback for Open-Meteo
+            if (selectedFarm.location) {
+                params.set('district', selectedFarm.location);
+            }
+
+            const response = await fetch(`/api/unified-weather?${params.toString()}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch weather data');
             }
 
             const data = await response.json();
 
-            // Extract current weather from today's forecast (first day)
-            if (data.forecast && data.forecast.length > 0) {
-                const today = data.forecast[0];
-
-                // Use today's max temperature for current display
-                setCurrentTemp(today.tempMax);
-
-                // Set description based on today's conditions
-                setDescription(today.description);
-
-                // Use today's actual humidity
-                setHumidity(today.humidity);
-
-                // Set full forecast
-                setForecast(data.forecast.slice(0, 7));
+            // Set current weather from unified response
+            if (data.current) {
+                setCurrentTemp(data.current.temp);
+                setDescription(data.current.description || 'Clear');
+                setHumidity(data.current.humidity);
             }
 
-            // Cache the weather data with location key
-            const locationKey = `${state}-${district}`;
-            setWeatherCache({
-                locationKey,
-                data
-            });
-        } catch (error) {
-            console.error('Weather fetch error:', error);
+            // Set source indicator
+            setWeatherSource(data.source || '');
+
+            // Set forecast (provided by Open-Meteo, even when current is from AgroMonitoring)
+            if (data.forecast && data.forecast.length > 0) {
+                setForecast(data.forecast.slice(0, 7));
+            }
+        } catch (err) {
+            console.error('Weather fetch error:', err);
             setError('Weather data unavailable');
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedFarm?.id, selectedFarm?.location]);
+
+    // Fetch weather when selected farm changes
+    useEffect(() => {
+        fetchWeather();
+    }, [fetchWeather]);
 
     const getWeatherIcon = (desc: string) => {
-        const description = desc.toLowerCase();
-        if (description.includes('clear')) return '☀️';
-        if (description.includes('cloud')) return '☁️';
-        if (description.includes('rain')) return '🌧️';
-        if (description.includes('storm')) return '⛈️';
+        const d = desc.toLowerCase();
+        if (d.includes('clear')) return '☀️';
+        if (d.includes('cloud')) return '☁️';
+        if (d.includes('rain')) return '🌧️';
+        if (d.includes('storm')) return '⛈️';
         return '🌤️';
     };
+
+    const sourceLabel = weatherSource === 'agromonitoring'
+        ? '🛰️ Satellite'
+        : weatherSource === 'open-meteo'
+            ? '🌤️ Forecast'
+            : '';
+
+    // No farm selected state
+    if (!selectedFarm) {
+        return (
+            <div className="card-glass">
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: 0, marginBottom: '0.25rem', fontSize: '1.1rem' }}>Weather Conditions</h3>
+                </div>
+                <div style={{
+                    padding: '2rem',
+                    textAlign: 'center',
+                    opacity: 0.6
+                }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🌾</div>
+                    <div>Select a farm to view weather data</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="card-glass">
             <div style={{ marginBottom: '1.5rem' }}>
-                <h3 style={{ margin: 0, marginBottom: '0.25rem', fontSize: '1.1rem' }}>Weather Conditions</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, marginBottom: '0.25rem', fontSize: '1.1rem' }}>Weather Conditions</h3>
+                    {sourceLabel && (
+                        <span style={{
+                            fontSize: '0.7rem',
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '999px',
+                            background: weatherSource === 'agromonitoring' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                            color: weatherSource === 'agromonitoring' ? '#059669' : '#2563EB',
+                            fontWeight: 600,
+                        }}>
+                            {sourceLabel}
+                        </span>
+                    )}
+                </div>
                 <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.7 }}>
-                    📍 {district && state ? `${district}, ${state}` : 'Select location in header'} • AI-enhanced forecast
+                    🌾 {selectedFarm.name} • {selectedFarm.location}
                 </p>
             </div>
 
@@ -134,7 +159,7 @@ export default function WeatherWidget() {
                             }}>
                                 {loading ? '...' : `${Math.round(currentTemp)}°C`}
                             </div>
-                            <div style={{ marginTop: '0.5rem', fontSize: '1rem', color: 'var(--color-text-secondary)' }}>
+                            <div style={{ marginTop: '0.5rem', fontSize: '1rem', color: 'var(--color-text-secondary)', textTransform: 'capitalize' as const }}>
                                 {loading ? 'Loading...' : description}
                             </div>
                             <div style={{ marginTop: '0.25rem', fontSize: '0.875rem', opacity: 0.7 }}>
