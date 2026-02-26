@@ -1,25 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
-// Mock database for demonstration
-let fieldsDatabase: any[] = [];
+/**
+ * Fields API — reads from REAL PostgreSQL database.
+ * No in-memory mock database.
+ */
 
 export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
-
         if (!session) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Return fields for the user
+        const userId = (session.user as any)?.id;
+        if (!userId) {
+            return NextResponse.json({ fields: [], count: 0 });
+        }
+
+        // Get farms from real database
+        const farms = await prisma.farm.findMany({
+            where: { userId },
+            include: {
+                farmData: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                },
+            },
+        });
+
+        const fields = farms.map((farm: any) => ({
+            id: farm.id,
+            name: farm.name,
+            area: farm.areaHa || 0,
+            cropType: 'Not specified',
+            location: farm.location,
+            status: 'Active',
+            polygonId: farm.polygonId,
+            createdAt: farm.createdAt.toISOString(),
+            latestData: farm.farmData[0] || null,
+        }));
+
         return NextResponse.json({
-            fields: fieldsDatabase,
-            count: fieldsDatabase.length
+            fields,
+            count: fields.length,
         });
     } catch (error) {
         console.error('Fields GET error:', error);
@@ -33,17 +59,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
-
         if (!session) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const userId = (session.user as any)?.id;
+        if (!userId) {
+            return NextResponse.json({ error: 'No user ID' }, { status: 401 });
         }
 
         const data = await request.json();
 
-        // Validate required fields
         if (!data.name || !data.area) {
             return NextResponse.json(
                 { error: 'Name and area are required' },
@@ -51,25 +77,31 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create new field entry
-        const newField = {
-            id: `field_${Date.now()}`,
-            name: data.name,
-            area: parseFloat(data.area),
-            cropType: data.cropType || 'Not specified',
-            location: data.location || 'Not specified',
-            userId: session.user?.email,
-            status: 'Active',
-            createdAt: new Date().toISOString()
-        };
+        // Create a real farm in the database
+        const newFarm = await prisma.farm.create({
+            data: {
+                name: data.name,
+                location: data.location || 'Not specified',
+                areaHa: parseFloat(data.area),
+                userId,
+            },
+        });
 
-        // Save to database (in a real app, this would be MongoDB/PostgreSQL)
-        fieldsDatabase.push(newField);
-
-        return NextResponse.json({
-            success: true,
-            field: newField
-        }, { status: 201 });
+        return NextResponse.json(
+            {
+                success: true,
+                field: {
+                    id: newFarm.id,
+                    name: newFarm.name,
+                    area: newFarm.areaHa || 0,
+                    cropType: 'Not specified',
+                    location: newFarm.location,
+                    status: 'Active',
+                    createdAt: newFarm.createdAt.toISOString(),
+                },
+            },
+            { status: 201 }
+        );
     } catch (error) {
         console.error('Fields POST error:', error);
         return NextResponse.json(

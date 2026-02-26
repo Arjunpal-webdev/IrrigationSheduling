@@ -3,28 +3,34 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import styles from './Sidebar.module.css';
 
 export default function Sidebar() {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const pathname = usePathname();
+    const { data: session } = useSession();
 
-    useEffect(() => {
-        console.log('Next navigation active');
-    }, [pathname]);
+    // Get user role — default to FARMER
+    const userRole = (session?.user as any)?.role || 'FARMER';
 
-    const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: '/assets/icons/dashboard-icon.png', href: '/dashboard' },
-        { id: 'weather', label: 'Weather', icon: '🌤️', href: '/weather' },
-        { id: 'alerts', label: 'Alerts', icon: '🔔', href: '/alerts' },
-        { id: 'crops', label: 'Crop Management', icon: '/assets/icons/crop-management.png', href: '/crops' },
-        { id: 'analytics', label: 'Analytics', icon: '/assets/icons/analytics-icon.png', href: '/analytics' },
-        { id: 'soil-moisture', label: 'Soil Moisture Monitor', icon: '📊', href: '/soil-moisture' },
-        { id: 'calculator', label: 'Water Calculator', icon: '/assets/icons/water-calculator.png', href: '/calculator' },
-        { id: 'crop-recommendation', label: 'Crop Recommendation', icon: '🌱', href: '/crop-recommendation' },
-        { id: 'fertilizer-recommendation', label: 'Fertilizer Recommendation', icon: '🧪', href: '/fertilizer-recommendation' },
-        { id: 'settings', label: 'Settings', icon: '⚙️', href: '/settings' },
+    const allMenuItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: '/assets/icons/dashboard-icon.png', href: '/dashboard', roles: ['FARMER', 'GOVERNMENT', 'RESEARCHER'] },
+        { id: 'farms', label: 'My Farms', icon: '🌾', href: '/farms', roles: ['FARMER', 'RESEARCHER'] },
+        { id: 'weather', label: 'Weather', icon: '🌤️', href: '/weather', roles: ['FARMER', 'GOVERNMENT', 'RESEARCHER'] },
+        { id: 'alerts', label: 'Alerts', icon: '🔔', href: '/alerts', roles: ['FARMER', 'GOVERNMENT', 'RESEARCHER'] },
+        { id: 'crops', label: 'Crop Management', icon: '/assets/icons/crop-management.png', href: '/crops', roles: ['FARMER', 'RESEARCHER'] },
+        { id: 'analytics', label: 'Analytics', icon: '/assets/icons/analytics-icon.png', href: '/analytics', roles: ['FARMER', 'GOVERNMENT', 'RESEARCHER'] },
+        { id: 'soil-moisture', label: 'Soil Moisture Monitor', icon: '📊', href: '/soil-moisture', roles: ['FARMER', 'RESEARCHER'] },
+        { id: 'calculator', label: 'Water Calculator', icon: '/assets/icons/water-calculator.png', href: '/calculator', roles: ['FARMER', 'RESEARCHER'] },
+        { id: 'crop-recommendation', label: 'Crop Recommendation', icon: '🌱', href: '/crop-recommendation', roles: ['FARMER', 'RESEARCHER'] },
+        { id: 'fertilizer-recommendation', label: 'Fertilizer Recommendation', icon: '🧪', href: '/fertilizer-recommendation', roles: ['FARMER', 'RESEARCHER'] },
+        { id: 'government', label: 'Government', icon: '🏛️', href: '/government', roles: ['GOVERNMENT'] },
+        { id: 'settings', label: 'Settings', icon: '⚙️', href: '/settings', roles: ['FARMER', 'GOVERNMENT', 'RESEARCHER'] },
     ];
+
+    // Filter menu items based on user role
+    const menuItems = allMenuItems.filter(item => item.roles.includes(userRole));
 
     const isActive = (href: string) => {
         if (href === '/dashboard') {

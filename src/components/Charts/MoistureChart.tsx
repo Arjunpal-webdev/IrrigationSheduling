@@ -149,8 +149,11 @@ export default function MoistureChart() {
                 borderRadius: '4px',
                 fontSize: '0.85rem'
             }}>
-                <strong>📊 AI Insight:</strong> Soil moisture levels are trending downward.
-                Irrigation recommended within the next 48 hours to maintain optimal conditions.
+                <strong>📊 AI Insight:</strong>{' '}
+                {data.length > 0
+                    ? 'Soil moisture trends are based on real-time data and AI predictions. Monitor closely for stress thresholds.'
+                    : 'No soil moisture data available yet. Add a farm and polygon to start monitoring.'
+                }
             </div>
         </div>
     );

@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import '@/styles/globals.css';
 import { SessionProvider } from 'next-auth/react';
 import { LocationProvider } from '@/contexts/LocationContext';
+import { FarmProvider } from '@/contexts/FarmContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,7 +19,9 @@ export default function RootLayout({
         <html lang="en">
             <body className={inter.className}>
                 <SessionProvider>
-                    <LocationProvider>{children}</LocationProvider>
+                    <LocationProvider>
+                        <FarmProvider>{children}</FarmProvider>
+                    </LocationProvider>
                 </SessionProvider>
 
                 {/* Global Navigation Overlay */}

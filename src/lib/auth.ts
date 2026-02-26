@@ -1,12 +1,12 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
+import { PrismaAdapter } from '@auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
-
-// Mock user storage (replace with actual database)
-const users: { email: string; password: string; name: string }[] = [];
+import prisma from '@/lib/prisma';
 
 export const authOptions: NextAuthOptions = {
+    adapter: PrismaAdapter(prisma),
     providers: [
         CredentialsProvider({
             name: 'Credentials',
@@ -21,12 +21,13 @@ export const authOptions: NextAuthOptions = {
                 }
 
                 console.log('Attempting to find user:', credentials.email);
-                console.log('Current users in array:', users.length);
 
-                const user = users.find((u) => u.email === credentials.email);
+                const user = await prisma.user.findUnique({
+                    where: { email: credentials.email },
+                });
 
-                if (!user) {
-                    console.log('User not found in array');
+                if (!user || !user.password) {
+                    console.log('User not found or no password set');
                     return null;
                 }
 
@@ -40,9 +41,10 @@ export const authOptions: NextAuthOptions = {
 
                 console.log('Authentication successful for:', user.email);
                 return {
-                    id: user.email,
+                    id: user.id,
                     email: user.email,
                     name: user.name,
+                    role: user.role,
                 };
             },
         }),
@@ -53,9 +55,9 @@ export const authOptions: NextAuthOptions = {
                 params: {
                     prompt: 'consent',
                     access_type: 'offline',
-                    response_type: 'code'
-                }
-            }
+                    response_type: 'code',
+                },
+            },
         }),
     ],
     session: {
@@ -65,43 +67,93 @@ export const authOptions: NextAuthOptions = {
         signIn: '/login',
     },
     callbacks: {
-        async signIn({ user, account, profile }) {
+        async signIn({ user, account }) {
+            // For OAuth sign-ins, ensure user has a role
+            if (account?.provider === 'google') {
+                const existingUser = await prisma.user.findUnique({
+                    where: { email: user.email! },
+                });
+                if (existingUser && !existingUser.role) {
+                    await prisma.user.update({
+                        where: { id: existingUser.id },
+                        data: { role: 'FARMER' },
+                    });
+                }
+            }
             return true;
         },
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
+                token.role = (user as any).role || 'FARMER';
+            }
+            // Always fetch latest role from DB
+            if (token.id && !user) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: token.id as string },
+                    select: { role: true },
+                });
+                if (dbUser) {
+                    token.role = dbUser.role;
+                }
             }
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 (session.user as any).id = token.id;
+                (session.user as any).role = token.role;
             }
             return session;
         },
     },
-    secret: process.env.NEXTAUTH_SECRET || 'development-secret-key-change-in-production',
+    secret: process.env.NEXTAUTH_SECRET || 'development-secret-key-at-least-32-characters-long',
 };
 
-// Export function to add users (for registration)
-export async function registerUser(email: string, password: string, name: string) {
-    console.log('Registering user:', email);
-    const hashedPassword = await bcrypt.hash(password, 10);
-    users.push({ email, password: hashedPassword, name });
-    console.log('User added to array. Total users:', users.length);
-}
+// Register a new user with role
+export async function registerUser(
+    email: string,
+    password: string,
+    name: string,
+    role: 'FARMER' | 'GOVERNMENT' | 'RESEARCHER' = 'FARMER'
+) {
+    console.log('Registering user:', email, 'with role:', role);
 
-// Export function to delete user
-export function deleteUser(email: string): boolean {
-    console.log('Deleting user:', email);
-    const index = users.findIndex((u) => u.email === email);
-    if (index !== -1) {
-        users.splice(index, 1);
-        console.log('User deleted. Total users:', users.length);
-        return true;
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+        where: { email },
+    });
+
+    if (existingUser) {
+        throw new Error('User already exists');
     }
-    console.log('User not found for deletion');
-    return false;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
+        data: {
+            email,
+            password: hashedPassword,
+            name,
+            role,
+        },
+    });
+
+    console.log('User created in database. ID:', user.id);
+    return user;
 }
 
+// Delete user
+export async function deleteUser(email: string): Promise<boolean> {
+    console.log('Deleting user:', email);
+    try {
+        await prisma.user.delete({
+            where: { email },
+        });
+        console.log('User deleted from database');
+        return true;
+    } catch (error) {
+        console.log('User not found for deletion');
+        return false;
+    }
+}

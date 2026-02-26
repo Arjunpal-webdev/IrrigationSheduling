@@ -355,15 +355,15 @@ export default function IrrigationSchedule() {
                 fontSize: '0.875rem'
             }}>
                 <div>
-                    <div style={{ opacity: 0.7 }}>Water Saved (vs. traditional)</div>
+                    <div style={{ opacity: 0.7 }}>Scheduled Events</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>
-                        34%
+                        {schedule.length}
                     </div>
                 </div>
                 <div>
-                    <div style={{ opacity: 0.7 }}>Efficiency Score</div>
+                    <div style={{ opacity: 0.7 }}>AI Recommended</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>
-                        92/100
+                        {schedule.filter(e => e.aiRecommended).length}
                     </div>
                 </div>
             </div>

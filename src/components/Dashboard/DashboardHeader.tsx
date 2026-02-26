@@ -3,58 +3,22 @@
 import styles from './DashboardHeader.module.css';
 import { useState, useRef, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
-import { useLocation } from '@/contexts/LocationContext';
-
-import {
-    getAvailableStates,
-    getDistrictsByState
-} from '@/lib/locationData';
+import { useFarm } from '@/contexts/FarmContext';
 
 interface DashboardHeaderProps {
     userName?: string;
-    onLocationChange?: (lat: number, lon: number, city: string) => void;
     notifications?: Array<{ id: number; message: string; type: string; time: string }>;
 }
 
-export default function DashboardHeader({ userName = 'Farmer', onLocationChange, notifications = [] }: DashboardHeaderProps) {
-    const { state: globalState, district: globalDistrict, lat, lon, setLocation } = useLocation();
+export default function DashboardHeader({ userName = 'Farmer', notifications = [] }: DashboardHeaderProps) {
+    const { selectedFarm } = useFarm();
 
-    const [state, setState] = useState(globalState);
-    const [district, setDistrict] = useState(globalDistrict);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [userData, setUserData] = useState<{ name: string; email: string } | null>(null);
     const [loading, setLoading] = useState(true);
     const notificationRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
-
-    const availableStates = getAvailableStates();
-    const districtsList = state ? getDistrictsByState(state) : [];
-
-    // Sync with global location
-    useEffect(() => {
-        setState(globalState);
-        setDistrict(globalDistrict);
-    }, [globalState, globalDistrict]);
-
-    const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newState = e.target.value;
-        setState(newState);
-        setDistrict(''); // Reset district when state changes
-    };
-
-    const handleDistrictChange = (newDistrict: string) => {
-        setDistrict(newDistrict);
-        if (state && newDistrict) {
-            // Update global location context
-            setLocation(state, newDistrict);
-
-            // Keep backward compatibility with callback (if needed)
-            if (onLocationChange) {
-                onLocationChange(lat, lon, `${newDistrict}, ${state}`);
-            }
-        }
-    };
 
     const toggleNotifications = () => {
         setShowNotifications(prev => !prev);
@@ -152,54 +116,29 @@ export default function DashboardHeader({ userName = 'Farmer', onLocationChange,
                         ☰
                     </button>
                     <div style={{ marginLeft: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                        <label style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-                            📍 Location:
-                        </label>
-
-                        {/* State Selector */}
-                        <select
-                            value={state}
-                            onChange={handleStateChange}
-                            style={{
-                                padding: '0.5rem 0.75rem',
-                                borderRadius: '8px',
-                                border: '2px solid var(--color-primary-light)',
-                                background: 'white',
-                                color: 'var(--color-text-primary)',
-                                fontSize: '0.875rem',
+                        {selectedFarm ? (
+                            <span style={{
+                                fontSize: '0.95rem',
                                 fontWeight: 600,
-                                cursor: 'pointer',
-                                minWidth: '140px'
-                            }}
-                        >
-                            <option value="">Select State...</option>
-                            {availableStates.map(s => (
-                                <option key={s} value={s}>{s}</option>
-                            ))}
-                        </select>
-
-                        {/* District Selector */}
-                        <select
-                            value={district}
-                            onChange={(e) => handleDistrictChange(e.target.value)}
-                            disabled={!state}
-                            style={{
-                                padding: '0.5rem 0.75rem',
-                                borderRadius: '8px',
-                                border: '2px solid var(--color-primary-light)',
-                                background: 'white',
                                 color: 'var(--color-text-primary)',
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                minWidth: '140px'
-                            }}
-                        >
-                            <option value="">Select District...</option>
-                            {districtsList.map(d => (
-                                <option key={d.name} value={d.name}>{d.name}</option>
-                            ))}
-                        </select>
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                🌾 {selectedFarm.name}
+                                <span style={{
+                                    fontSize: '0.8rem',
+                                    fontWeight: 400,
+                                    color: 'var(--color-text-muted)'
+                                }}>
+                                    • {selectedFarm.location}
+                                </span>
+                            </span>
+                        ) : (
+                            <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+                                No farm selected — add a farm to get started
+                            </span>
+                        )}
                     </div>
                 </div>
 

@@ -272,7 +272,7 @@ export class WeatherService {
             };
         } catch (error) {
             console.error('Weather API error:', error);
-            return this.getMockWeather(lat);
+            throw new Error('Failed to fetch current weather data');
         }
     }
 
@@ -318,7 +318,7 @@ export class WeatherService {
             });
         } catch (error) {
             console.error('Forecast API error:', error);
-            return this.getMockForecast();
+            throw new Error('Failed to fetch weather forecast data');
         }
     }
 
@@ -342,66 +342,7 @@ export class WeatherService {
         return '09d';
     }
 
-    /**
-     * Mock weather data (fallback)
-     */
-    private static getMockWeather(lat: number): WeatherData {
-        const temp = 25 + Math.random() * 10;
-        const et0 = ETCalculator.calculateET0({
-            tempMin: temp - 5,
-            tempMax: temp + 5,
-            humidity: 60,
-            windSpeed: 2.5,
-            latitude: lat,
-            date: new Date()
-        });
 
-        return {
-            timestamp: new Date(),
-            temperature: temp,
-            humidity: 60,
-            windSpeed: 2.5,
-            solarRadiation: 18,
-            precipitation: 0,
-            et0
-        };
-    }
-
-    /**
-     * Mock forecast data (fallback)
-     */
-    private static getMockForecast(): WeatherForecast[] {
-        const forecast: WeatherForecast[] = [];
-        const today = new Date();
-
-        const conditions = [
-            { desc: 'Clear sky', icon: '01d', precip: 0 },
-            { desc: 'Few clouds', icon: '02d', precip: 0 },
-            { desc: 'Scattered clouds', icon: '03d', precip: 10 },
-            { desc: 'Light rain', icon: '10d', precip: 60 },
-            { desc: 'Clear sky', icon: '01d', precip: 0 }
-        ];
-
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(today);
-            date.setDate(date.getDate() + i);
-
-            const condition = conditions[i % conditions.length];
-
-            forecast.push({
-                date: date.toISOString().split('T')[0],
-                tempMin: 20 + Math.random() * 5,
-                tempMax: 28 + Math.random() * 7,
-                humidity: 55 + Math.random() * 20,
-                precipitation: condition.precip > 30 ? 5 + Math.random() * 15 : 0,
-                precipitationProbability: condition.precip,
-                description: condition.desc,
-                icon: condition.icon
-            });
-        }
-
-        return forecast;
-    }
 
     /**
      * AI-enhanced: Refine forecast based on historical accuracy
