@@ -22,6 +22,7 @@ export interface RAGContext {
  */
 export async function buildFarmContext(farmId: string): Promise<RAGContext | null> {
     try {
+        if (!prisma) return null;
         const farm = await prisma.farm.findUnique({
             where: { id: farmId },
             include: {
@@ -71,6 +72,7 @@ export async function buildFarmContext(farmId: string): Promise<RAGContext | nul
  */
 export async function buildMultiFarmContext(userId: string): Promise<RAGContext[]> {
     try {
+        if (!prisma) return [];
         const farms = await prisma.farm.findMany({
             where: { userId },
             include: {

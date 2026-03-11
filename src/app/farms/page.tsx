@@ -91,9 +91,10 @@ export default function FarmsPage() {
         }
         setFetchingData(true);
         try {
-            const [weatherRes, ndviRes] = await Promise.all([
+            const [weatherRes, ndviRes, soilRes] = await Promise.all([
                 fetch(`/api/agro?farmId=${farm.id}&type=weather`),
                 fetch(`/api/agro?farmId=${farm.id}&type=ndvi`),
+                fetch(`/api/agro?farmId=${farm.id}&type=soil`),
             ]);
 
             let weather = null;
@@ -104,12 +105,22 @@ export default function FarmsPage() {
             if (weatherRes.ok) {
                 const wd = await weatherRes.json();
                 weather = wd.data;
-                if (weather?.main?.humidity) {
-                    soilMoisture = Math.round(weather.main.humidity * 0.6);
+            }
+
+            if (soilRes.ok) {
+                const sd = await soilRes.json();
+                const soil = sd.data;
+                if (soil) {
+                    soilMoisture = Math.round((soil.moisture || 0) * 100);
+                    // Drought risk based on soil moisture: below 30% is high risk
+                    droughtRisk = Math.max(0, 1 - (soilMoisture / 40));
                 }
+            } else if (weather?.main?.humidity) {
+                // Fallback to humidity-based estimate if soil data fails
+                soilMoisture = Math.round(weather.main.humidity * 0.6);
                 const temp = weather?.main?.temp || 0;
                 const rain = weather?.rain?.['1h'] || 0;
-                droughtRisk = Math.min(1, Math.max(0, (temp - 25) / 20 - rain / 10));
+                droughtRisk = Math.min(1, Math.max(0, (temp - 273.15 - 25) / 20 - rain / 10));
             }
 
             if (ndviRes.ok) {
@@ -119,7 +130,27 @@ export default function FarmsPage() {
                 }
             }
 
-            setAgroData({ ndvi, weather, soilMoisture, droughtRisk });
+            // Normalize weather shape
+            let normalizedWeather = null;
+            if (weather) {
+                normalizedWeather = {
+                    main: {
+                        temp: weather.main?.temp ?? weather.temp ?? 273.15,
+                        humidity: weather.main?.humidity ?? weather.humidity ?? 0,
+                        pressure: weather.main?.pressure ?? weather.pressure ?? 0,
+                    },
+                    weather: weather.weather || [],
+                    wind: { speed: weather.wind?.speed ?? weather.wind_speed ?? 0 },
+                    rain: weather.rain || {},
+                };
+            }
+
+            setAgroData({
+                ndvi,
+                weather: normalizedWeather,
+                soilMoisture,
+                droughtRisk
+            });
         } catch (err) {
             console.error('Error fetching agro data:', err);
         } finally {
@@ -156,8 +187,8 @@ export default function FarmsPage() {
 
         try {
             const body: any = {
-                name: formName,
-                location: formLocation,
+                name: formName.trim(),
+                location: formLocation.trim(),
                 areaHa: formArea ? parseFloat(formArea) : undefined,
             };
 
@@ -173,13 +204,18 @@ export default function FarmsPage() {
 
             if (res.ok) {
                 const data = await res.json();
-                setFarms(prev => [...prev, data.farm]);
-                setShowCreateModal(false);
-                setFormName('');
-                setFormLocation('');
-                setFormArea('');
-                setDrawnCoords(null);
-                handleSelectFarm(data.farm);
+                if (data.farm) {
+                    setFarms(prev => [...prev, data.farm]);
+                    setShowCreateModal(false);
+                    setFormName('');
+                    setFormLocation('');
+                    setFormArea('');
+                    setDrawnCoords(null);
+                    handleSelectFarm(data.farm);
+                } else {
+                    console.error('❌ [Farms] Server returned success but no farm data');
+                    alert('Farm was created but data could not be loaded. Please refresh.');
+                }
             } else {
                 const err = await res.json();
                 alert(err.error || 'Failed to create farm');
@@ -291,6 +327,7 @@ export default function FarmsPage() {
             ) : (
                 <div className={styles.farmGrid}>
                     {farms.map(farm => {
+                        if (!farm) return null; // Safety guard for null items
                         const isSelected = selectedFarm?.id === farm.id;
                         return (
                             <div

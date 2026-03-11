@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { registerUser } from '@/lib/auth/registerUser';
 
 export async function POST(request: Request) {

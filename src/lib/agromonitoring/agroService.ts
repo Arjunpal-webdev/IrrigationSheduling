@@ -201,14 +201,21 @@ export class AgroMonitoringService {
     /**
      * Get current weather for a polygon
      */
-    static async getWeather(polygonId: string): Promise<AgroWeatherResponse> {
+    static async getWeather(polygonId: string): Promise<AgroWeatherResponse | null> {
         const apiKey = getApiKey();
 
-        const response = await axios.get(
-            `${AGRO_BASE_URL}/weather?polyid=${polygonId}&appid=${apiKey}`
-        );
+        try {
+            const response = await axios.get(
+                `${AGRO_BASE_URL}/weather?polyid=${polygonId}&appid=${apiKey}`
+            );
 
-        return response.data[0] || response.data;
+            // Handle both array and object responses
+            const data = response.data;
+            return Array.isArray(data) ? data[0] : data;
+        } catch (error: any) {
+            console.error('AgroMonitoring Weather API error:', error?.message || error);
+            return null;
+        }
     }
 
     /**

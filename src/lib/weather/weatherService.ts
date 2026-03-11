@@ -48,12 +48,17 @@ interface ForecastWeatherResponse {
 export class WeatherService {
     /**
      * Convert location name to coordinates using geocoding
+     * Fallback for broad location names (like states/regions)
      */
-    static async geocodeLocation(locationName: string): Promise<{ lat: number; lon: number }> {
+    static async geocodeLocation(locationName: string): Promise<{ lat: number; lon: number } | null> {
+        const trimmedName = locationName.trim();
+        if (!trimmedName) return null;
+
         try {
+            console.log(`🌐 Geocoding: "${trimmedName}"`);
             const response = await axios.get(GEOCODING_API, {
                 params: {
-                    name: locationName,
+                    name: trimmedName,
                     count: 1,
                     language: 'en',
                     format: 'json'
@@ -61,20 +66,26 @@ export class WeatherService {
             });
 
             if (!response.data.results || response.data.results.length === 0) {
-                throw new Error(`Location "${locationName}" not found`);
+                // FALLBACK: If "City, State, Country" fails, try just "City"
+                if (trimmedName.includes(',')) {
+                    const firstPart = trimmedName.split(',')[0].trim();
+                    console.log(`⚠️ Geocoding "${trimmedName}" failed. Trying fallback: "${firstPart}"`);
+                    return this.geocodeLocation(firstPart);
+                }
+
+                console.warn(`❌ Location "${trimmedName}" not found by geocoding API`);
+                return null;
             }
 
             const result: GeocodingResult = response.data.results[0];
+            console.log(`✅ Geocoded "${trimmedName}" to: ${result.name}, ${result.admin1 || ''} (${result.latitude}, ${result.longitude})`);
             return {
                 lat: result.latitude,
                 lon: result.longitude
             };
-        } catch (error) {
-            if (axios.isAxiosError(error) && error.message.includes('not found')) {
-                throw error;
-            }
-            console.error('Geocoding API error:', error);
-            throw new Error(`Failed to geocode location: ${locationName}`);
+        } catch (error: any) {
+            console.error('Geocoding API error:', error?.message || error);
+            return null;
         }
     }
 
@@ -218,7 +229,11 @@ export class WeatherService {
         pastRainfall: Array<{ date: string; rain_mm: number }>;
     }> {
         // Step 1: Geocode location
-        const { lat, lon } = await this.geocodeLocation(locationName);
+        const coords = await this.geocodeLocation(locationName);
+        if (!coords) {
+            throw new Error(`Could not find coordinates for location: ${locationName}`);
+        }
+        const { lat, lon } = coords;
 
         // Step 2: Get current forecast
         const currentData = await this.getCurrentForecast(lat, lon);

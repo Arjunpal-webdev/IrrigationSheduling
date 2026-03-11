@@ -83,9 +83,14 @@ export default function DashboardClient() {
             const soilData = soilRes.status === 'fulfilled' && soilRes.value.ok
                 ? (await soilRes.value.json()).data : null;
 
+            // DIAGNOSTIC LOGGING
+            console.log(`📊 [Dashboard] Data fetch for ${farmId}:`, {
+                hasWeather: !!weather,
+                hasNDVI: !!ndviData,
+                hasSoil: !!soilData
+            });
+
             // Normalize weather shape: AgroMonitoring returns nested objects
-            // (e.g. clouds: { all: 25 }, main: { temp, humidity, pressure })
-            // but our interface expects flat values.
             let normalizedWeather: FarmAgroData['weather'] = null;
             if (weather) {
                 normalizedWeather = {
@@ -99,11 +104,13 @@ export default function DashboardClient() {
                 };
             }
 
+            const latestNDVI = Array.isArray(ndviData) && ndviData.length > 0
+                ? (ndviData[ndviData.length - 1]?.data?.mean ?? null)
+                : (ndviData?.data?.mean ?? ndviData?.mean ?? null);
+
             setFarmData({
                 weather: normalizedWeather,
-                ndvi: Array.isArray(ndviData) && ndviData.length > 0
-                    ? (ndviData[ndviData.length - 1]?.data?.mean ?? null)
-                    : (ndviData?.data?.mean ?? ndviData?.mean ?? null),
+                ndvi: latestNDVI,
                 soilMoisture: soilData?.moisture ?? soilData?.soilMoisture ?? null,
                 droughtRisk: soilData?.droughtRisk ?? null,
             });
@@ -315,21 +322,21 @@ export default function DashboardClient() {
                                     {
                                         icon: '🌡️',
                                         label: 'Weather',
-                                        value: weatherTemp !== null ? `${Math.round(weatherTemp)}°C` : '—',
+                                        value: weatherTemp !== null ? `${Math.round(weatherTemp)}°C` : 'N/A',
                                         status: weatherDesc || 'No data',
                                         color: '#3B82F6'
                                     },
                                     {
                                         icon: '🛰️',
                                         label: 'NDVI (Crop Health)',
-                                        value: ndviInfo.value,
-                                        status: ndviInfo.status,
+                                        value: ndviInfo.value || 'N/A',
+                                        status: ndviInfo.status || 'No data',
                                         color: ndviInfo.color
                                     },
                                     {
                                         icon: '💧',
                                         label: 'Soil Moisture',
-                                        value: soilMoistureVal !== null ? `${typeof soilMoistureVal === 'number' ? soilMoistureVal.toFixed(1) : soilMoistureVal}%` : '—',
+                                        value: soilMoistureVal !== null ? `${typeof soilMoistureVal === 'number' ? soilMoistureVal.toFixed(1) : soilMoistureVal}%` : 'N/A',
                                         status: stressAnalysis?.status?.replace('_', ' ') || (soilMoistureVal !== null ? 'Live' : 'No data'),
                                         color: getStressColor(stressAnalysis?.status)
                                     },
@@ -338,8 +345,8 @@ export default function DashboardClient() {
                                         label: 'Next Irrigation',
                                         value: irrigationRec?.isNeeded
                                             ? irrigationRec.daysUntilStress === 0 ? 'Today' : `${irrigationRec.daysUntilStress}d`
-                                            : 'Not needed',
-                                        status: irrigationRec?.urgency || 'Scheduled',
+                                            : irrigationRec ? 'Not needed' : 'N/A',
+                                        status: irrigationRec?.urgency || '—',
                                         color: getUrgencyColor(irrigationRec?.urgency)
                                     }
                                 ].map((stat, i) => (

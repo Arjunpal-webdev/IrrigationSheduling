@@ -79,10 +79,26 @@ export default function CropRecommendation() {
 
     // Fetch weather data for initial pre-fill
     useEffect(() => {
-        if (state && district) {
-            const fetchWeather = async () => {
-                setLoadingWeather(true);
-                try {
+        const fetchWeather = async () => {
+            setLoadingWeather(true);
+            try {
+                // RESTORED: Prioritize AgroMonitoring if farm has polygon
+                if (selectedFarm?.id && selectedFarm.polygonId) {
+                    const res = await fetch(`/api/agro?farmId=${selectedFarm.id}&type=weather`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const weather = data.data;
+                        if (weather) {
+                            setTemperature(((weather.main?.temp ?? 273.15) - 273.15).toFixed(1));
+                            setHumidity((weather.main?.humidity ?? 80).toString());
+                            setRainfall((weather.rain?.['1h'] || weather.rain?.['3h'] || 100).toFixed(1));
+                            return; // Success
+                        }
+                    }
+                }
+
+                // Fallback: Using manual location or when farm has no polygonId
+                if (state && district) {
                     const districts = getDistrictsByState(state);
                     const districtData = districts.find(d => d.name === district);
                     if (districtData) {
@@ -92,19 +108,21 @@ export default function CropRecommendation() {
                             const weather = data.data;
                             if (weather) {
                                 setTemperature(weather.temp.toFixed(1));
+                                setHumidity((weather.humidity ?? 80).toString());
                                 setRainfall((weather.rain || 100).toFixed(1));
                             }
                         }
                     }
-                } catch (error) {
-                    console.error('Failed to fetch weather:', error);
-                } finally {
-                    setLoadingWeather(false);
                 }
-            };
-            fetchWeather();
-        }
-    }, [state, district]);
+            } catch (error) {
+                console.error('Failed to fetch weather:', error);
+            } finally {
+                setLoadingWeather(false);
+            }
+        };
+
+        fetchWeather();
+    }, [state, district, selectedFarm]);
 
     const handleAnalyze = async (e: React.FormEvent) => {
         e.preventDefault();

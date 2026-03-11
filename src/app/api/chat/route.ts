@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import KrishiSahayakChatbot, { GeminiMessage } from '@/lib/ai/chatbot';
 import { FarmContext } from '@/types';
 import { buildFarmContext, buildMultiFarmContext, formatContextForPrompt } from '@/lib/ai/ragContext';

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
 import { ThresholdManager } from '@/lib/alerts/thresholdManager';
+import prisma from '@/lib/prisma';
 import { Alert } from '@/types';
 
 /**

@@ -4,10 +4,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
 import { AgroMonitoringService } from '@/lib/agromonitoring/agroService';
+import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
     try {
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        if (!prisma) return NextResponse.json({ error: 'Database not available during build' }, { status: 503 });
         const farm = await prisma.farm.findUnique({
             where: { id: farmId },
         });
@@ -36,11 +38,14 @@ export async function GET(request: NextRequest) {
         }
 
         if (!farm.polygonId) {
+            console.error(`❌ Farm ${farmId} has no polygonId`);
             return NextResponse.json(
                 { error: 'Farm has no polygon registered with AgroMonitoring' },
                 { status: 400 }
             );
         }
+
+        console.log(`🛰️ Agro API: Using polygon ${farm.polygonId} for farm ${farm.name}`);
 
         let data: any;
 
@@ -65,7 +70,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Optionally store in database as FarmData
-        if (dataType === 'weather' || dataType === 'ndvi') {
+        if (dataType === 'weather' || dataType === 'ndvi' || dataType === 'soil') {
             try {
                 const updateData: any = {};
                 if (dataType === 'weather') {
@@ -73,14 +78,19 @@ export async function GET(request: NextRequest) {
                 } else if (dataType === 'ndvi' && Array.isArray(data) && data.length > 0) {
                     const latestNDVI = data[data.length - 1];
                     updateData.ndvi = latestNDVI?.data?.mean || null;
+                } else if (dataType === 'soil') {
+                    // AgroMonitoring soil moisture is a decimal (0-1)
+                    updateData.soilMoisture = (data.moisture || 0) * 100;
                 }
 
-                await prisma.farmData.create({
-                    data: {
-                        farmId,
-                        ...updateData,
-                    },
-                });
+                if (prisma) {
+                    await prisma.farmData.create({
+                        data: {
+                            farmId,
+                            ...updateData,
+                        },
+                    });
+                }
             } catch (dbError) {
                 console.warn('⚠️ Could not store data in DB:', dbError);
             }
