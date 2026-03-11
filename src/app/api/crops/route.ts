@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
 import { Crop, growthStagesByCrop } from '@/components/Crops/mockCropData';
+import prisma from '@/lib/prisma';
 
 /**
  * Crops API — reads real farms from PostgreSQL, maps them to crop management view.
@@ -12,6 +13,7 @@ import { Crop, growthStagesByCrop } from '@/components/Crops/mockCropData';
 
 export async function GET(request: NextRequest) {
     try {
+        if (!prisma) return NextResponse.json({ error: 'Database not available' }, { status: 503 });
         const session = await getServerSession(authOptions);
         const userId = (session?.user as any)?.id;
 
@@ -80,6 +82,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        if (!prisma) return NextResponse.json({ error: 'Database not available' }, { status: 503 });
         const session = await getServerSession(authOptions);
         const userId = (session?.user as any)?.id;
 

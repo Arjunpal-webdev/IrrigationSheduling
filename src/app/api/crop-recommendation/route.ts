@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import prisma from '@/lib/prisma';
-const cropService = require('../../../../backend/services/cropRecommendation.service');
+import cropService from '../../../../backend/services/cropRecommendation.service';
 
 export async function POST(request: NextRequest) {
     try {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
         const analysis = predictionResult.analysis;
 
         // Save to database as a specialized insight if farmId is present
-        if (farmId) {
+        if (farmId && prisma) {
             try {
                 await prisma.insight.create({
                     data: {

@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const farmId = searchParams.get('farmId');
-        const district = searchParams.get('district');
+        const district = searchParams.get('district')?.trim() || null;
         const latParam = searchParams.get('lat');
         const lonParam = searchParams.get('lon');
 
@@ -115,8 +115,27 @@ async function fetchOpenMeteoWeather(
 
     if (district) {
         const coords = await WeatherService.geocodeLocation(district);
-        lat = coords.lat;
-        lon = coords.lon;
+        if (coords) {
+            lat = coords.lat;
+            lon = coords.lon;
+        } else if (latParam && lonParam) {
+            lat = parseFloat(latParam);
+            lon = parseFloat(lonParam);
+        } else {
+            // Return empty weather if no location found
+            return {
+                current: {
+                    temp: 0,
+                    humidity: 0,
+                    description: 'Location not found',
+                    windSpeed: 0,
+                    pressure: 0,
+                    clouds: 0,
+                    rain: 0,
+                },
+                forecast: [],
+            };
+        }
     } else if (latParam && lonParam) {
         lat = parseFloat(latParam);
         lon = parseFloat(lonParam);
@@ -156,8 +175,15 @@ async function getOpenMeteoForecast(
 
     if (district) {
         const coords = await WeatherService.geocodeLocation(district);
-        lat = coords.lat;
-        lon = coords.lon;
+        if (coords) {
+            lat = coords.lat;
+            lon = coords.lon;
+        } else if (latParam && lonParam) {
+            lat = parseFloat(latParam);
+            lon = parseFloat(lonParam);
+        } else {
+            return [];
+        }
     } else if (latParam && lonParam) {
         lat = parseFloat(latParam);
         lon = parseFloat(lonParam);

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
@@ -12,6 +13,7 @@ import { AgroMonitoringService } from '@/lib/agromonitoring/agroService';
 
 export async function GET(request: NextRequest) {
     try {
+        if (!prisma) return NextResponse.json({ error: 'Database not available' }, { status: 503 });
         const session = await getServerSession(authOptions);
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -46,6 +48,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        if (!prisma) return NextResponse.json({ error: 'Database not available' }, { status: 503 });
         const session = await getServerSession(authOptions);
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

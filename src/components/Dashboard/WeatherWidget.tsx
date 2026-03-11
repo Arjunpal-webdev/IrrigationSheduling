@@ -25,38 +25,42 @@ export default function WeatherWidget() {
         setError('');
 
         try {
-            // Use unified weather route — passes farmId for AgroMonitoring priority
-            const params = new URLSearchParams();
-            params.set('farmId', selectedFarm.id);
-            // Also pass farm location as fallback for Open-Meteo
-            if (selectedFarm.location) {
-                params.set('district', selectedFarm.location);
+            // RESTORED: Use primary AgroMonitoring API via polygon proxy
+            const [weatherRes, forecastRes] = await Promise.all([
+                fetch(`/api/agro?farmId=${selectedFarm.id}&type=weather`),
+                fetch(`/api/agro?farmId=${selectedFarm.id}&type=forecast`)
+            ]);
+
+            if (!weatherRes.ok) {
+                throw new Error('AgroMonitoring weather data unavailable');
             }
 
-            const response = await fetch(`/api/unified-weather?${params.toString()}`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch weather data');
+            const weatherData = await weatherRes.json();
+            const forecastData = forecastRes.ok ? await forecastRes.json() : { data: [] };
+
+            // Set current weather
+            const weather = weatherData.data;
+            if (weather) {
+                setCurrentTemp((weather.main?.temp ?? 273.15) - 273.15);
+                setDescription(weather.weather?.[0]?.description || 'Clear');
+                setHumidity(weather.main?.humidity || 0);
+                setWeatherSource('agromonitoring');
             }
 
-            const data = await response.json();
-
-            // Set current weather from unified response
-            if (data.current) {
-                setCurrentTemp(data.current.temp);
-                setDescription(data.current.description || 'Clear');
-                setHumidity(data.current.humidity);
-            }
-
-            // Set source indicator
-            setWeatherSource(data.source || '');
-
-            // Set forecast (provided by Open-Meteo, even when current is from AgroMonitoring)
-            if (data.forecast && data.forecast.length > 0) {
-                setForecast(data.forecast.slice(0, 7));
+            // Set forecast
+            if (Array.isArray(forecastData.data)) {
+                const refined = forecastData.data.map((item: any) => ({
+                    date: new Date(item.dt * 1000).toISOString(),
+                    tempMin: (item.main?.temp_min ?? 273.15) - 273.15,
+                    tempMax: (item.main?.temp_max ?? 273.15) - 273.15,
+                    description: item.weather?.[0]?.description || 'Clear',
+                    precipitation: item.rain?.['3h'] || 0
+                }));
+                setForecast(refined.slice(0, 7));
             }
         } catch (err) {
             console.error('Weather fetch error:', err);
-            setError('Weather data unavailable');
+            setError('AgroMonitoring weather unavailable');
         } finally {
             setLoading(false);
         }
