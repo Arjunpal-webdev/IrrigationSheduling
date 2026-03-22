@@ -10,6 +10,8 @@ import WeatherWidget from '@/components/Dashboard/WeatherWidget';
 import IrrigationSchedule from '@/components/Dashboard/IrrigationSchedule';
 import AlertsPanel from '@/components/Dashboard/AlertsPanel';
 import AIInsightsPanel from '@/components/Dashboard/AIInsightsPanel';
+import LivePredictionGauge from '@/components/Dashboard/LivePredictionGauge';
+import IrrigationDecisionPanel from '@/components/Dashboard/IrrigationDecisionPanel';
 import { useFarm } from '@/contexts/FarmContext';
 import { useLocation } from '@/contexts/LocationContext';
 import styles from './dashboard.module.css';
@@ -54,6 +56,9 @@ export default function DashboardClient() {
     });
     const [farmInsights, setFarmInsights] = useState<any[]>([]);
     const [dataLoading, setDataLoading] = useState(false);
+
+    // Rolling soil moisture history (max 20 readings) for the line graph
+    const [moistureHistory, setMoistureHistory] = useState<{ value: number; time: string }[]>([]);
 
     // Simulation data (still uses location for weather sim)
     const [simulationData, setSimulationData] = useState<any>(null);
@@ -138,7 +143,39 @@ export default function DashboardClient() {
             fetchFarmData(selectedFarm.id);
             fetchFarmInsights(selectedFarm.id);
         }
+        // Reset history when farm changes
+        setMoistureHistory([]);
     }, [selectedFarm?.id, fetchFarmData, fetchFarmInsights]);
+
+    // Append new moisture reading to rolling history whenever soilMoisture updates
+    const soilMoistureVal = farmData.soilMoisture ?? simulationData?.predicted?.[0]?.moisture ?? null;
+    useEffect(() => {
+        if (soilMoistureVal !== null) {
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            setMoistureHistory(prev => {
+                const next = [...prev, { value: Number(soilMoistureVal), time: timeLabel }];
+                return next.length > 20 ? next.slice(next.length - 20) : next;
+            });
+        }
+    }, [soilMoistureVal]);
+
+    // Seed history from simulation predictions when history is still empty
+    useEffect(() => {
+        if (simulationData?.predicted && moistureHistory.length === 0) {
+            const now = new Date();
+            const seedPoints = (simulationData.predicted as any[]).slice(0, 7).map((p: any, i: number) => {
+                const d = new Date(now);
+                d.setDate(d.getDate() - (6 - i)); // past 7 days (oldest first)
+                const label = i === 6 ? 'Now' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                return { value: Number(p.moisture ?? 0), time: label };
+            });
+            if (seedPoints.some(p => p.value > 0)) {
+                setMoistureHistory(seedPoints);
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [simulationData]);
 
     // ── Simulation data (uses location, independent of farm) ──
     const { lat, lon } = useLocation();
@@ -222,7 +259,6 @@ export default function DashboardClient() {
 
     // ── Derived stat values ──
     const ndviInfo = getNdviLabel(farmData.ndvi);
-    const soilMoistureVal = farmData.soilMoisture ?? simulationData?.predicted?.[0]?.moisture ?? null;
     const weatherTemp = farmData.weather?.temp ?? null;
     const weatherDesc = farmData.weather?.description ?? null;
 
@@ -316,77 +352,24 @@ export default function DashboardClient() {
                                 </div>
                             )}
 
-                            {/* Quick Stats Cards — REAL DATA */}
-                            <div className={styles.statsGrid}>
-                                {[
-                                    {
-                                        icon: '🌡️',
-                                        label: 'Weather',
-                                        value: weatherTemp !== null ? `${Math.round(weatherTemp)}°C` : 'N/A',
-                                        status: weatherDesc || 'No data',
-                                        color: '#3B82F6'
-                                    },
-                                    {
-                                        icon: '🛰️',
-                                        label: 'NDVI (Crop Health)',
-                                        value: ndviInfo.value || 'N/A',
-                                        status: ndviInfo.status || 'No data',
-                                        color: ndviInfo.color
-                                    },
-                                    {
-                                        icon: '💧',
-                                        label: 'Soil Moisture',
-                                        value: soilMoistureVal !== null ? `${typeof soilMoistureVal === 'number' ? soilMoistureVal.toFixed(1) : soilMoistureVal}%` : 'N/A',
-                                        status: stressAnalysis?.status?.replace('_', ' ') || (soilMoistureVal !== null ? 'Live' : 'No data'),
-                                        color: getStressColor(stressAnalysis?.status)
-                                    },
-                                    {
-                                        icon: '🚿',
-                                        label: 'Next Irrigation',
-                                        value: irrigationRec?.isNeeded
-                                            ? irrigationRec.daysUntilStress === 0 ? 'Today' : `${irrigationRec.daysUntilStress}d`
-                                            : irrigationRec ? 'Not needed' : 'N/A',
-                                        status: irrigationRec?.urgency || '—',
-                                        color: getUrgencyColor(irrigationRec?.urgency)
+                            {/* ── Prediction Row: Live Gauge + Irrigation Decision ── */}
+                            <div className={styles.predictionRow}>
+                                <LivePredictionGauge
+                                    moisture={typeof soilMoistureVal === 'number' ? soilMoistureVal : 0}
+                                    ndvi={farmData.ndvi}
+                                    temp={weatherTemp}
+                                    irrigationNeeded={!!irrigationRec?.isNeeded}
+                                    moistureHistory={moistureHistory}
+                                    sensorConnected={false}
+                                />
+                                <IrrigationDecisionPanel
+                                    irrigationNeeded={!!irrigationRec?.isNeeded}
+                                    hoursUntilIrrigation={
+                                        irrigationRec?.isNeeded && irrigationRec?.daysUntilStress !== undefined
+                                            ? irrigationRec.daysUntilStress * 24
+                                            : irrigationRec?.isNeeded ? 6.75 : null
                                     }
-                                ].map((stat, i) => (
-                                    <div key={i} className={styles.statCard} style={{ '--accent-color': stat.color } as any}>
-                                        <div className={styles.statIcon}>{stat.icon}</div>
-                                        <div className={styles.statValue}>{stat.value}</div>
-                                        <div className={styles.statLabel}>{stat.label}</div>
-                                        <div className={styles.statStatus}>{stat.status}</div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Farm Info Banner */}
-                            <div style={{
-                                background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
-                                borderRadius: '16px',
-                                padding: '1.25rem 1.5rem',
-                                marginBottom: '1.5rem',
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                                gap: '1rem',
-                            }}>
-                                <div>
-                                    <div style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 500 }}>Farm Name</div>
-                                    <div style={{ fontWeight: 700, color: '#1a2e1a', fontSize: '1.05rem' }}>{selectedFarm.name}</div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 500 }}>Location</div>
-                                    <div style={{ fontWeight: 700, color: '#1a2e1a', fontSize: '1.05rem' }}>{selectedFarm.location}</div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 500 }}>Area</div>
-                                    <div style={{ fontWeight: 700, color: '#1a2e1a', fontSize: '1.05rem' }}>{selectedFarm.areaHa ? `${selectedFarm.areaHa} ha` : 'Not set'}</div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 500 }}>Satellite Tracking</div>
-                                    <div style={{ fontWeight: 700, color: selectedFarm.polygonId ? '#10B981' : '#F59E0B', fontSize: '1.05rem' }}>
-                                        {selectedFarm.polygonId ? '✅ Active' : '⚠️ No polygon'}
-                                    </div>
-                                </div>
+                                />
                             </div>
 
                             {/* Weather Detail (only if real data) */}

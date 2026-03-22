@@ -3,6 +3,7 @@
 import Sidebar from '@/components/Dashboard/Sidebar';
 import DashboardHeader from '@/components/Dashboard/DashboardHeader';
 import WeatherWidget from '@/components/Dashboard/WeatherWidget';
+import SmartLocationSelector from '@/components/Weather/SmartLocationSelector';
 import styles from '../dashboard/dashboard.module.css';
 
 export default function WeatherPage() {
@@ -23,6 +24,7 @@ export default function WeatherPage() {
 
                     {/* Weather Widget - uses header location */}
                     <div style={{ display: 'grid', gap: '1.5rem' }}>
+                        <SmartLocationSelector />
                         <WeatherWidget />
 
                         <div className="card">
