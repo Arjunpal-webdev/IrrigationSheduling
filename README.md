@@ -256,3 +256,15 @@ For issues or questions:
 **Built with 💚 for sustainable agriculture**
 
 🌿 GreenGuard AI - Nurturing fields with intelligence, cultivating a sustainable future.
+
+## 📁 Project Structure
+
+The repository is organized into the following main directories:
+
+- `.vscode/`
+- `backend/`
+- `ml/`
+- `pathway-service/`
+- `prisma/`
+- `public/assets/icons/`
+- `src/`
